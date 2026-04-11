@@ -1,17 +1,5 @@
 import Foundation
 import CryptoKit
-import os.log
-
-private func ilog(_ msg: String) {
-    let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
-    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    let path = dir.appendingPathComponent("debug.log")
-    let line = "[\(ISO8601DateFormatter().string(from: Date()))] [iFlytek] \(msg)\n"
-    if let data = line.data(using: .utf8) {
-        if let fh = try? FileHandle(forWritingTo: path) { fh.seekToEndOfFile(); fh.write(data); fh.closeFile() }
-        else { try? data.write(to: path) }
-    }
-}
 
 // MARK: - Response Types
 
@@ -176,12 +164,12 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                     apiKey: self.apiKey,
                     apiSecret: self.apiSecret
                 ) else {
-                    ilog(" ERROR: Failed to build auth URL")
+                    Log.stt.error("Failed to build auth URL")
                     continuation.finish(throwing: IFlytekError.invalidConfiguration)
                     return
                 }
 
-                ilog(" Connecting to: \(url.absoluteString.prefix(120))...")
+                Log.stt.info("Connecting...")
                 let webSocketTask = self.session.webSocketTask(with: url)
                 webSocketTask.resume()
 
@@ -215,16 +203,15 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                             if isComplete { return }
 
                         } catch is CancellationError {
-                            ilog(" Receive cancelled (normal)")
+                            Log.stt.debug("Receive cancelled (normal)")
                             continuation.finish()
                             return
                         } catch let error as URLError where error.code == .cancelled {
-                            ilog(" WebSocket cancelled (normal)")
+                            Log.stt.debug("Receive cancelled (normal)")
                             continuation.finish()
                             return
                         } catch {
-                            ilog(" Receive error: \(error)")
-                            ilog(" Error type: \(type(of: error))")
+                            Log.stt.error("Receive error: \(error, privacy: .public)")
                             continuation.finish(throwing: error)
                             return
                         }
@@ -271,10 +258,10 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                         do {
                             try await webSocketTask.send(.string(jsonString))
                             if frameIndex == 0 {
-                                ilog(" First frame sent OK (audio size: \(audioChunk.count) bytes)")
+                                Log.stt.debug("First frame sent OK")
                             }
                         } catch {
-                            ilog(" Send error at frame \(frameIndex): \(error)")
+                            Log.stt.error("Send error at frame \(frameIndex, privacy: .public): \(error, privacy: .public)")
                             break
                         }
                     }

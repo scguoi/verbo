@@ -26,6 +26,7 @@
 		3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */; };
 		30AF0ECD22973F1A0E034300 /* HistoryManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D98EB68C1002C6D4375D93 /* HistoryManagerTests.swift */; };
 		314107DE4B6407FBC4AD7420 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DC9E8168CECC20B6933BE1B /* HotkeyManager.swift */; };
+		3DC95E9AD752F4A6E9BA590F /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5529F6C3F0808988F469557D /* Log.swift */; };
 		44422E0F997C233B8E5631FF /* TextOutputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ADFB56F7D51FDFAF152B32 /* TextOutputService.swift */; };
 		479513BB54C6DB77DB75D9DD /* FloatingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59B904C482B17DBE8E05143 /* FloatingViewModel.swift */; };
 		4B2687A34090A4425983A8C7 /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3293E4A3E37904545C16E7F /* PillView.swift */; };
@@ -83,6 +84,7 @@
 		4DC9E8168CECC20B6933BE1B /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFlytekSTTAdapterTests.swift; sourceTree = "<group>"; };
 		50DBDF55C55EFFFC9149CFC2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		5529F6C3F0808988F469557D /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
 		5DF36D517735FCBC5CAEAC5E /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 		612EAC0BD2157C66D515C2DD /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */,
+				5529F6C3F0808988F469557D /* Log.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -409,6 +412,7 @@
 				314107DE4B6407FBC4AD7420 /* HotkeyManager.swift in Sources */,
 				1E13A2BF6C74610D90CDCC55 /* IFlytekSTTAdapter.swift in Sources */,
 				3008DC0634B3551906738701 /* LLMAdapter.swift in Sources */,
+				3DC95E9AD752F4A6E9BA590F /* Log.swift in Sources */,
 				881CC5C25C0E29E2615D43E9 /* OpenAILLMAdapter.swift in Sources */,
 				4B2687A34090A4425983A8C7 /* PillView.swift in Sources */,
 				EC9D772EEC6F8F13930F4764 /* PipelineEngine.swift in Sources */,

@@ -29,12 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Debug: log loaded config
         let sttCfg = configManager.config.providers.stt["iflytek"]
-        let debugLine = "[Config] appId=\(sttCfg?.appId ?? "nil") apiKey=\(sttCfg?.apiKey.prefix(8) ?? "nil")... path=\(configManager.configFileURL.path)\n"
-        let debugDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
-        let debugPath = debugDir.appendingPathComponent("debug.log")
-        if let data = debugLine.data(using: .utf8), let fh = try? FileHandle(forWritingTo: debugPath) {
-            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
-        }
+        let configPath = configManager.configFileURL.path
+        Log.config.info("Config loaded: appId=\(sttCfg?.appId ?? "nil", privacy: .public) path=\(configPath, privacy: .public)")
 
         // 1.5 Apply UI language override (before any UI is created)
         applyUILanguage(configManager.config.general.uiLanguage)
