@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
-import { createRecordingStore } from '../../stores/recording'
-import { createAppStore } from '../../stores/app'
+import { recordingStore } from '../../stores/recording'
+import { appStore } from '../../stores/app'
 import { useConfigStore } from '../../config/store'
 import { Pill } from './Pill'
 import { Bubble } from './Bubble'
 
-const recordingStore = createRecordingStore()
-const appStore = createAppStore()
 
 export function FloatingWindow() {
   const pipelineState = useStore(recordingStore, (s) => s.state)

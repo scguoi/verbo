@@ -22,3 +22,6 @@ export const createAppStore = () =>
       set({ activeWindow: window })
     },
   }))
+
+/** Singleton instance for app-wide use */
+export const appStore = createAppStore()

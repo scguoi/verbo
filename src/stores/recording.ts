@@ -40,3 +40,6 @@ export const createRecordingStore = () =>
       set({ state: IDLE_STATE })
     },
   }))
+
+/** Singleton instance for app-wide use */
+export const recordingStore = createRecordingStore()
