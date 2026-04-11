@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+src-tauri/gen/
+.superpowers/
+.playwright-mcp/
+.claude/

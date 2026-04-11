@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicecui/tauri-docs-1/master/src/content/docs/reference/config.schema.json",
+  "productName": "Verbo",
+  "version": "0.1.0",
+  "identifier": "com.verbo.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Verbo",
+        "label": "main",
+        "width": 900,
+        "height": 680,
+        "resizable": true,
+        "fullscreen": false
+      },
+      {
+        "label": "floating",
+        "title": "",
+        "width": 280,
+        "height": 80,
+        "resizable": false,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "transparent": true,
+        "skipTaskbar": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ]
+  }
+}
