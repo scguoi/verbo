@@ -106,6 +106,7 @@ export function Bubble({ state, sceneName, onCopy, onRetry }: BubbleProps) {
               {onCopy && (
                 <button
                   data-testid="copy-button"
+                  data-no-drag
                   onClick={onCopy}
                   type="button"
                   style={{
@@ -124,6 +125,7 @@ export function Bubble({ state, sceneName, onCopy, onRetry }: BubbleProps) {
               {onRetry && (
                 <button
                   data-testid="retry-button"
+                  data-no-drag
                   onClick={onRetry}
                   type="button"
                   style={{
@@ -151,6 +153,7 @@ export function Bubble({ state, sceneName, onCopy, onRetry }: BubbleProps) {
             {onRetry && (
               <button
                 data-testid="retry-button"
+                  data-no-drag
                 onClick={onRetry}
                 type="button"
                 style={{

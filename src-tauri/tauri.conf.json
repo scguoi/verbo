@@ -15,8 +15,8 @@
       {
         "label": "floating",
         "title": "Verbo",
-        "width": 340,
-        "height": 200,
+        "width": 200,
+        "height": 40,
         "resizable": false,
         "decorations": false,
         "alwaysOnTop": true,

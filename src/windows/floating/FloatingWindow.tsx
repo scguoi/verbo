@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import { recordingStore } from '../../stores/recording'
 import { appStore } from '../../stores/app'
 import { useConfigStore } from '../../config/store'
@@ -9,31 +8,31 @@ import { Bubble } from './Bubble'
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
-function useCursorPassthrough() {
-  const onMouseEnterWidget = useCallback(async () => {
-    if (!isTauri) return
-    try {
-      await getCurrentWindow().setIgnoreCursorEvents(false)
-    } catch {
-      // ignore
-    }
-  }, [])
+async function startWindowDrag() {
+  if (!isTauri) return
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    await getCurrentWindow().startDragging()
+  } catch {
+    // ignore
+  }
+}
 
-  const onMouseLeaveWidget = useCallback(async () => {
-    if (!isTauri) return
-    try {
-      await getCurrentWindow().setIgnoreCursorEvents(true)
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isTauri) return
-    getCurrentWindow().setIgnoreCursorEvents(true).catch(() => {})
-  }, [])
-
-  return { onMouseEnterWidget, onMouseLeaveWidget }
+async function resizeWindowToContent() {
+  if (!isTauri) return
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const { LogicalSize } = await import('@tauri-apps/api/dpi')
+    const root = document.getElementById('root')
+    if (!root) return
+    // Measure actual content size and resize window to fit
+    const rect = root.getBoundingClientRect()
+    const width = Math.max(Math.ceil(rect.width) + 16, 120)
+    const height = Math.max(Math.ceil(rect.height) + 16, 40)
+    await getCurrentWindow().setSize(new LogicalSize(width, height))
+  } catch {
+    // ignore
+  }
 }
 
 export function FloatingWindow() {
@@ -116,46 +115,45 @@ export function FloatingWindow() {
       : pipelineState
 
   const hotkeyHint = scene?.hotkey.toggleRecord ?? undefined
-  const { onMouseEnterWidget, onMouseLeaveWidget } = useCursorPassthrough()
 
-  const handleDragStart = useCallback(async (e: React.MouseEvent) => {
-    if (!isTauri || e.button !== 0) return
-    try {
-      await getCurrentWindow().startDragging()
-    } catch {
-      // ignore
-    }
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    // Don't drag when clicking buttons inside bubble
+    if ((e.target as HTMLElement).closest('button[data-no-drag]')) return
+    startWindowDrag()
   }, [])
+
+  // Auto-resize window to match content size
+  const contentRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    resizeWindowToContent()
+  }, [pipelineState.status, showLastResult])
 
   return (
     <div
+      ref={contentRef}
       className="floating-window"
       data-testid="floating-window"
+      onMouseDown={handleDragStart}
       style={{
-        display: 'flex',
+        display: 'inline-flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '8px',
+        cursor: 'grab',
       }}
     >
-      <div
-        onMouseEnter={onMouseEnterWidget}
-        onMouseLeave={onMouseLeaveWidget}
-        onMouseDown={handleDragStart}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
-      >
-        <Pill
-          state={pipelineState}
-          hotkeyHint={hotkeyHint}
-          elapsed={pipelineState.status === 'recording' ? elapsed : undefined}
-          onClick={handlePillClick}
-        />
-        <Bubble
-          state={bubbleState}
-          sceneName={sceneName}
-          onCopy={handleCopy}
-        />
-      </div>
+      <Pill
+        state={pipelineState}
+        hotkeyHint={hotkeyHint}
+        elapsed={pipelineState.status === 'recording' ? elapsed : undefined}
+        onClick={handlePillClick}
+      />
+      <Bubble
+        state={bubbleState}
+        sceneName={sceneName}
+        onCopy={handleCopy}
+      />
     </div>
   )
 }
