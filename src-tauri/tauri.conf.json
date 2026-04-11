@@ -10,26 +10,21 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Verbo",
-        "label": "main",
-        "width": 900,
-        "height": 680,
-        "resizable": true,
-        "fullscreen": false
-      },
-      {
         "label": "floating",
-        "title": "",
-        "width": 280,
-        "height": 80,
+        "title": "Verbo",
+        "width": 340,
+        "height": 200,
         "resizable": false,
         "decorations": false,
         "alwaysOnTop": true,
         "transparent": true,
         "skipTaskbar": true,
-        "visible": false
+        "visible": true,
+        "x": 560,
+        "y": 40
       }
     ],
     "security": {
