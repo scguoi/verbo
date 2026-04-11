@@ -1,11 +1,27 @@
-node_modules/
-dist/
-src-tauri/target/
+# macOS
+.DS_Store
+*.xcuserstate
+xcuserdata/
+
+# Xcode
+build/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.moved-aside
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# IDE
 .vscode/
 .idea/
-.DS_Store
-Thumbs.db
-src-tauri/gen/
+
+# Agent artifacts
 .superpowers/
 .playwright-mcp/
 .claude/
