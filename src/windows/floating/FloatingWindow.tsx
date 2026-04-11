@@ -1,11 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { recordingStore } from '../../stores/recording'
 import { appStore } from '../../stores/app'
 import { useConfigStore } from '../../config/store'
 import { Pill } from './Pill'
 import { Bubble } from './Bubble'
 
+const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+function useCursorPassthrough() {
+  const onMouseEnterWidget = useCallback(async () => {
+    if (!isTauri) return
+    try {
+      await getCurrentWindow().setIgnoreCursorEvents(false)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const onMouseLeaveWidget = useCallback(async () => {
+    if (!isTauri) return
+    try {
+      await getCurrentWindow().setIgnoreCursorEvents(true)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isTauri) return
+    getCurrentWindow().setIgnoreCursorEvents(true).catch(() => {})
+  }, [])
+
+  return { onMouseEnterWidget, onMouseLeaveWidget }
+}
 
 export function FloatingWindow() {
   const pipelineState = useStore(recordingStore, (s) => s.state)
@@ -87,6 +116,16 @@ export function FloatingWindow() {
       : pipelineState
 
   const hotkeyHint = scene?.hotkey.toggleRecord ?? undefined
+  const { onMouseEnterWidget, onMouseLeaveWidget } = useCursorPassthrough()
+
+  const handleDragStart = useCallback(async (e: React.MouseEvent) => {
+    if (!isTauri || e.button !== 0) return
+    try {
+      await getCurrentWindow().startDragging()
+    } catch {
+      // ignore
+    }
+  }, [])
 
   return (
     <div
@@ -99,17 +138,24 @@ export function FloatingWindow() {
         gap: '8px',
       }}
     >
-      <Pill
-        state={pipelineState}
-        hotkeyHint={hotkeyHint}
-        elapsed={pipelineState.status === 'recording' ? elapsed : undefined}
-        onClick={handlePillClick}
-      />
-      <Bubble
-        state={bubbleState}
-        sceneName={sceneName}
-        onCopy={handleCopy}
-      />
+      <div
+        onMouseEnter={onMouseEnterWidget}
+        onMouseLeave={onMouseLeaveWidget}
+        onMouseDown={handleDragStart}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+      >
+        <Pill
+          state={pipelineState}
+          hotkeyHint={hotkeyHint}
+          elapsed={pipelineState.status === 'recording' ? elapsed : undefined}
+          onClick={handlePillClick}
+        />
+        <Bubble
+          state={bubbleState}
+          sceneName={sceneName}
+          onCopy={handleCopy}
+        />
+      </div>
     </div>
   )
 }
