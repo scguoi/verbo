@@ -123,4 +123,77 @@ describe('HistoryStore', () => {
     // Verify it's an array (readonly at type level)
     expect(records).toHaveLength(1)
   })
+
+  describe('regression: ID uniqueness', () => {
+    it('rapid additions produce unique IDs', () => {
+      for (let i = 0; i < 10; i++) {
+        store.getState().addRecord(makeNewRecord({ finalText: `item-${i}` }))
+      }
+
+      const ids = store.getState().records.map((r) => r.id)
+      const uniqueIds = new Set(ids)
+      expect(uniqueIds.size).toBe(10)
+    })
+  })
+
+  describe('regression: search edge cases', () => {
+    it('search empty string returns all records', () => {
+      store.getState().addRecord(makeNewRecord({ finalText: 'alpha' }))
+      store.getState().addRecord(makeNewRecord({ finalText: 'beta' }))
+      store.getState().addRecord(makeNewRecord({ finalText: 'gamma' }))
+
+      const results = store.getState().search('')
+      expect(results).toHaveLength(3)
+    })
+
+    it('search special characters works as literal match, not regex', () => {
+      store.getState().addRecord(makeNewRecord({ finalText: 'hello.*world' }))
+      store.getState().addRecord(makeNewRecord({ finalText: 'hello world' }))
+
+      const results = store.getState().search('.*')
+      expect(results).toHaveLength(1)
+      expect(results[0].finalText).toBe('hello.*world')
+    })
+
+    it('search after clearAll returns empty', () => {
+      store.getState().addRecord(makeNewRecord({ finalText: 'data' }))
+      store.getState().clearAll()
+
+      const results = store.getState().search('data')
+      expect(results).toEqual([])
+    })
+  })
+
+  describe('regression: field preservation', () => {
+    it('all NewRecord fields are preserved in stored record', () => {
+      const input: NewRecord = {
+        sceneId: 'custom-scene',
+        sceneName: 'Custom Scene',
+        originalText: 'raw input',
+        finalText: 'processed output',
+        outputStatus: 'inserted',
+        pipelineSteps: ['stt', 'llm', 'llm'],
+      }
+      store.getState().addRecord(input)
+
+      const record = store.getState().records[0]
+      expect(record.sceneId).toBe('custom-scene')
+      expect(record.sceneName).toBe('Custom Scene')
+      expect(record.originalText).toBe('raw input')
+      expect(record.finalText).toBe('processed output')
+      expect(record.outputStatus).toBe('inserted')
+      expect(record.pipelineSteps).toEqual(['stt', 'llm', 'llm'])
+    })
+  })
+
+  describe('regression: filterByScene exact match', () => {
+    it('sceneId "dict" does NOT match "dictate"', () => {
+      store.getState().addRecord(makeNewRecord({ sceneId: 'dictate' }))
+      store.getState().addRecord(makeNewRecord({ sceneId: 'dict' }))
+
+      const results = store.getState().filterByScene('dict')
+      expect(results).toHaveLength(1)
+      expect(results[0].sceneId).toBe('dict')
+    })
+  })
 })

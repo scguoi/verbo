@@ -97,4 +97,64 @@ describe('RecordingStore', () => {
     expect(typeof state.state).toBe('object')
     expect(state.state).toEqual({ status: 'idle' })
   })
+
+  describe('regression: lastResult preservation', () => {
+    it('done→error preserves lastResult', () => {
+      store.getState().startRecording()
+      store.getState().updateState({ status: 'done', sourceText: 'src', finalText: 'fin' })
+
+      expect(store.getState().lastResult).toEqual({ sourceText: 'src', finalText: 'fin' })
+
+      store.getState().updateState({ status: 'error', message: 'something went wrong' })
+
+      expect(store.getState().state).toEqual({ status: 'error', message: 'something went wrong' })
+      expect(store.getState().lastResult).toEqual({ sourceText: 'src', finalText: 'fin' })
+    })
+
+    it('multiple done states — lastResult reflects the most recent', () => {
+      store.getState().startRecording()
+      store.getState().updateState({ status: 'done', sourceText: 'a', finalText: 'b' })
+
+      expect(store.getState().lastResult).toEqual({ sourceText: 'a', finalText: 'b' })
+
+      store.getState().updateState({ status: 'done', sourceText: 'c', finalText: 'd' })
+
+      expect(store.getState().lastResult).toEqual({ sourceText: 'c', finalText: 'd' })
+    })
+  })
+
+  describe('regression: error state', () => {
+    it('error state stores full message', () => {
+      store.getState().updateState({ status: 'error', message: 'detailed error: timeout after 30s' })
+
+      expect(store.getState().state).toEqual({
+        status: 'error',
+        message: 'detailed error: timeout after 30s',
+      })
+    })
+  })
+
+  describe('regression: edge cases', () => {
+    it('updateState(done) with empty strings saves to lastResult', () => {
+      store.getState().updateState({ status: 'done', sourceText: '', finalText: '' })
+
+      expect(store.getState().lastResult).toEqual({ sourceText: '', finalText: '' })
+    })
+
+    it('startRecording timestamp increases across calls', () => {
+      store.getState().startRecording()
+      const state1 = store.getState().state
+      expect(state1.status).toBe('recording')
+      const ts1 = state1.status === 'recording' ? state1.startedAt : 0
+
+      // Reset and record again
+      store.getState().reset()
+      store.getState().startRecording()
+      const state2 = store.getState().state
+      expect(state2.status).toBe('recording')
+      const ts2 = state2.status === 'recording' ? state2.startedAt : 0
+
+      expect(ts2).toBeGreaterThanOrEqual(ts1)
+    })
+  })
 })

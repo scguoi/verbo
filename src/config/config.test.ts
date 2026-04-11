@@ -136,4 +136,62 @@ describe('useConfigStore', () => {
     // Config should remain unchanged
     expect(configAfter.scenes).toEqual(configBefore.scenes)
   })
+
+  describe('regression: updateScene partial merge', () => {
+    it('update only scene name — pipeline, hotkey, output unchanged', () => {
+      const before = useConfigStore.getState().getScene('dictate')!
+      useConfigStore.getState().updateScene('dictate', { name: 'New Name' })
+      const after = useConfigStore.getState().getScene('dictate')!
+
+      expect(after.name).toBe('New Name')
+      expect(after.pipeline).toEqual(before.pipeline)
+      expect(after.hotkey).toEqual(before.hotkey)
+      expect(after.output).toBe(before.output)
+    })
+
+    it('update with empty object — scene unchanged', () => {
+      const before = useConfigStore.getState().getScene('dictate')!
+      useConfigStore.getState().updateScene('dictate', {})
+      const after = useConfigStore.getState().getScene('dictate')!
+
+      expect(after).toEqual(before)
+    })
+  })
+
+  describe('regression: invalid defaultScene', () => {
+    it('getDefaultScene with non-existent defaultScene returns undefined', () => {
+      useConfigStore.getState().setConfig({
+        ...DEFAULT_CONFIG,
+        defaultScene: 'non-existent-id',
+      })
+
+      const scene = useConfigStore.getState().getDefaultScene()
+      expect(scene).toBeUndefined()
+    })
+  })
+
+  describe('regression: empty scenes', () => {
+    it('setConfig with empty scenes — getScene and getDefaultScene return undefined', () => {
+      useConfigStore.getState().setConfig({
+        ...DEFAULT_CONFIG,
+        scenes: [],
+      })
+
+      expect(useConfigStore.getState().getScene('dictate')).toBeUndefined()
+      expect(useConfigStore.getState().getDefaultScene()).toBeUndefined()
+    })
+  })
+
+  describe('regression: multiple updateScene calls', () => {
+    it('update two different scenes independently — both changes persist', () => {
+      useConfigStore.getState().updateScene('dictate', { name: 'Dict Updated' })
+      useConfigStore.getState().updateScene('polish', { name: 'Polish Updated' })
+
+      const dictate = useConfigStore.getState().getScene('dictate')
+      const polish = useConfigStore.getState().getScene('polish')
+
+      expect(dictate!.name).toBe('Dict Updated')
+      expect(polish!.name).toBe('Polish Updated')
+    })
+  })
 })
