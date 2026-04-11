@@ -243,4 +243,93 @@ describe('usePipeline', () => {
     })
     expect(mockInvoke).not.toHaveBeenCalledWith('simulate_input', expect.anything())
   })
+
+  describe('regression: output failures', () => {
+    it('both simulate and clipboard fail → outputStatus is "failed"', async () => {
+      mockInvoke
+        .mockRejectedValueOnce(new Error('simulate failed'))
+        .mockRejectedValueOnce(new Error('clipboard failed'))
+
+      const deps = createDeps()
+      const { result } = renderHook(() => usePipeline(deps))
+
+      await act(async () => {
+        await result.current.startRecording()
+      })
+
+      await act(async () => {
+        await result.current.stopAndProcess(testScene)
+      })
+
+      const addRecord = deps.historyStore.getState().addRecord as ReturnType<typeof vi.fn>
+      expect(addRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ outputStatus: 'failed' }),
+      )
+    })
+  })
+
+  describe('regression: history record fields', () => {
+    it('history record has correct pipelineSteps matching scene pipeline types', async () => {
+      const sttOnlyScene: Scene = {
+        ...testScene,
+        pipeline: [{ type: 'stt', provider: 'mock-stt', lang: 'en' }],
+      }
+      const deps = createDeps()
+      const { result } = renderHook(() => usePipeline(deps))
+
+      await act(async () => {
+        await result.current.startRecording()
+      })
+
+      await act(async () => {
+        await result.current.stopAndProcess(sttOnlyScene)
+      })
+
+      const addRecord = deps.historyStore.getState().addRecord as ReturnType<typeof vi.fn>
+      expect(addRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ pipelineSteps: ['stt'] }),
+      )
+    })
+
+    it('pipeline error → history records outputStatus "failed"', async () => {
+      mockExecutePipeline.mockRejectedValue(new Error('Pipeline crashed'))
+
+      const deps = createDeps()
+      const { result } = renderHook(() => usePipeline(deps))
+
+      await act(async () => {
+        await result.current.startRecording()
+      })
+
+      await act(async () => {
+        await result.current.stopAndProcess(testScene)
+      })
+
+      const addRecord = deps.historyStore.getState().addRecord as ReturnType<typeof vi.fn>
+      expect(addRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ outputStatus: 'failed' }),
+      )
+    })
+
+    it('empty pipeline result → still saved to history', async () => {
+      mockExecutePipeline.mockResolvedValue('')
+
+      const deps = createDeps()
+      const { result } = renderHook(() => usePipeline(deps))
+
+      await act(async () => {
+        await result.current.startRecording()
+      })
+
+      await act(async () => {
+        await result.current.stopAndProcess(testScene)
+      })
+
+      const addRecord = deps.historyStore.getState().addRecord as ReturnType<typeof vi.fn>
+      expect(addRecord).toHaveBeenCalledTimes(1)
+      expect(addRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ finalText: '' }),
+      )
+    })
+  })
 })

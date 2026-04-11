@@ -37,6 +37,7 @@ export function parseIFlytekResponse(response: any): IFlytekParsedResult {
     ? ws
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .flatMap((item: any) => item.cw ?? [])
+        .filter((cw: any) => cw != null)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((cw: any) => cw.w ?? '')
         .join('')
@@ -170,7 +171,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 const FRAME_SIZE = 1280
 
-function splitIntoFrames(buffer: ArrayBuffer): readonly ArrayBuffer[] {
+export function splitIntoFrames(buffer: ArrayBuffer): readonly ArrayBuffer[] {
   const frames: ArrayBuffer[] = []
   const view = new Uint8Array(buffer)
   for (let offset = 0; offset < view.byteLength; offset += FRAME_SIZE) {

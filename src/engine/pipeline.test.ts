@@ -188,6 +188,120 @@ describe('executePipeline', () => {
     await expect(executePipeline(steps, ctx)).rejects.toThrow()
   })
 
+  // ---- edge cases ----
+
+  it('empty STT output → LLM receives prompt with empty {{input}}', async () => {
+    const stt = createMockSTT({ transcribe: vi.fn().mockResolvedValue('') })
+    const llm = createMockLLM()
+    const ctx = createContext({
+      getSTT: vi.fn().mockReturnValue(stt),
+      getLLM: vi.fn().mockReturnValue(llm),
+    })
+    const steps: readonly PipelineStep[] = [
+      { type: 'stt', provider: 'mock-stt', lang: 'en' },
+      { type: 'llm', provider: 'mock-llm', prompt: 'Translate: {{input}}' },
+    ]
+
+    await executePipeline(steps, ctx)
+
+    expect(llm.complete).toHaveBeenCalledWith({ prompt: 'Translate: ' })
+  })
+
+  it('LLM prompt without {{input}} passes through unchanged', async () => {
+    const stt = createMockSTT()
+    const llm = createMockLLM()
+    const ctx = createContext({
+      getSTT: vi.fn().mockReturnValue(stt),
+      getLLM: vi.fn().mockReturnValue(llm),
+    })
+    const steps: readonly PipelineStep[] = [
+      { type: 'stt', provider: 'mock-stt', lang: 'en' },
+      { type: 'llm', provider: 'mock-llm', prompt: 'Just a static prompt' },
+    ]
+
+    await executePipeline(steps, ctx)
+
+    expect(llm.complete).toHaveBeenCalledWith({ prompt: 'Just a static prompt' })
+  })
+
+  it('case-sensitive template: {{INPUT}} should NOT be replaced', async () => {
+    const stt = createMockSTT()
+    const llm = createMockLLM()
+    const ctx = createContext({
+      getSTT: vi.fn().mockReturnValue(stt),
+      getLLM: vi.fn().mockReturnValue(llm),
+    })
+    const steps: readonly PipelineStep[] = [
+      { type: 'stt', provider: 'mock-stt', lang: 'en' },
+      { type: 'llm', provider: 'mock-llm', prompt: 'Translate: {{INPUT}}' },
+    ]
+
+    await executePipeline(steps, ctx)
+
+    expect(llm.complete).toHaveBeenCalledWith({ prompt: 'Translate: {{INPUT}}' })
+  })
+
+  it('error stops pipeline: after STT error, no LLM step executes', async () => {
+    const stt = createMockSTT({
+      transcribe: vi.fn().mockRejectedValue(new Error('STT exploded')),
+    })
+    const llm = createMockLLM()
+    const ctx = createContext({
+      getSTT: vi.fn().mockReturnValue(stt),
+      getLLM: vi.fn().mockReturnValue(llm),
+    })
+    const steps: readonly PipelineStep[] = [
+      { type: 'stt', provider: 'mock-stt', lang: 'en' },
+      { type: 'llm', provider: 'mock-llm', prompt: '{{input}}' },
+    ]
+
+    await expect(executePipeline(steps, ctx)).rejects.toThrow('STT exploded')
+    expect(llm.complete).not.toHaveBeenCalled()
+  })
+
+  it('error state emitted before re-throw', async () => {
+    const stt = createMockSTT({
+      transcribe: vi.fn().mockRejectedValue(new Error('boom')),
+    })
+    const ctx = createContext({ getSTT: vi.fn().mockReturnValue(stt) })
+    const steps: readonly PipelineStep[] = [{ type: 'stt', provider: 'mock-stt', lang: 'en' }]
+
+    const stateChanges: PipelineState[] = []
+    ctx.onStateChange = (state: PipelineState) => { stateChanges.push(state) }
+
+    try {
+      await executePipeline(steps, ctx)
+    } catch {
+      // expected
+    }
+
+    // error state must have been recorded before the promise rejected
+    const errorState = stateChanges.find((s) => s.status === 'error')
+    expect(errorState).toBeDefined()
+    expect(errorState!.status).toBe('error')
+  })
+
+  it('done state tracks sourceText correctly in STT+LLM pipeline', async () => {
+    const stt = createMockSTT({ transcribe: vi.fn().mockResolvedValue('source text') })
+    const llm = createMockLLM({ complete: vi.fn().mockResolvedValue('final text') })
+    const ctx = createContext({
+      getSTT: vi.fn().mockReturnValue(stt),
+      getLLM: vi.fn().mockReturnValue(llm),
+    })
+    const steps: readonly PipelineStep[] = [
+      { type: 'stt', provider: 'mock-stt', lang: 'en' },
+      { type: 'llm', provider: 'mock-llm', prompt: '{{input}}' },
+    ]
+
+    await executePipeline(steps, ctx)
+
+    expect(ctx.onStateChange).toHaveBeenCalledWith({
+      status: 'done',
+      sourceText: 'source text',
+      finalText: 'final text',
+    })
+  })
+
   // ---- streaming modes ----
 
   it('STT streaming mode: uses transcribeStream when capability is true and audioStream provided', async () => {
