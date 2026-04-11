@@ -7,28 +7,46 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		050FDBF06343FA161D422B8F /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E06F7B949681F710C632A30 /* AboutView.swift */; };
 		071AE2F25792F0DFBC0D93B7 /* IFlytekSTTAdapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */; };
 		0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */; };
+		0B20B8CF6DC30E5CBB7E12F4 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6ECAE7AE273CA981884EB6 /* SettingsViewModel.swift */; };
 		1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */; };
 		145109E557E743572666E7D6 /* SceneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */; };
+		14EA1FABFBFD5CE4516F9E92 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */; };
 		152E22778F4CA45ACE4AFF3E /* OpenAILLMAdapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB1E911256A588CFA0DFDA4 /* OpenAILLMAdapterTests.swift */; };
 		1E13A2BF6C74610D90CDCC55 /* IFlytekSTTAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7C327ACFAC343416717AA /* IFlytekSTTAdapter.swift */; };
+		2096B55FE1A00F42EB03F8E7 /* WaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3086C1E4529C308B3DC4DA /* WaveformView.swift */; };
 		242F9AF07C0A0D883374A281 /* STTAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847CDA8409A812473BE7EFC6 /* STTAdapter.swift */; };
 		249F340650F161A9ACC01923 /* PipelineState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78B76157DDF8310BD0479997 /* PipelineState.swift */; };
 		28F252EEEE887689BBA65302 /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612EAC0BD2157C66D515C2DD /* Scene.swift */; };
 		3008DC0634B3551906738701 /* LLMAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4606913A9D43F43F3AB3140 /* LLMAdapter.swift */; };
 		3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */; };
+		30AF0ECD22973F1A0E034300 /* HistoryManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D98EB68C1002C6D4375D93 /* HistoryManagerTests.swift */; };
+		314107DE4B6407FBC4AD7420 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DC9E8168CECC20B6933BE1B /* HotkeyManager.swift */; };
 		44422E0F997C233B8E5631FF /* TextOutputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ADFB56F7D51FDFAF152B32 /* TextOutputService.swift */; };
+		479513BB54C6DB77DB75D9DD /* FloatingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59B904C482B17DBE8E05143 /* FloatingViewModel.swift */; };
+		4B2687A34090A4425983A8C7 /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3293E4A3E37904545C16E7F /* PillView.swift */; };
 		4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B99A856F463E066096E9FF /* AppConfig.swift */; };
 		50DB8A1047A0EF4CC901A8DC /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */; };
 		55CA0B03B0FE018C03CF97B8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1ED63D3A5D2301B4132A54BA /* Assets.xcassets */; };
 		55CD7AF8C0D1F35B75EED66A /* ConfigManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7CC8A35EF546D6D9DA19EE7 /* ConfigManagerTests.swift */; };
 		59969CDA808AEF5AAA82DAE5 /* ConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF31F4458044DFDDE9BC8928 /* ConfigManager.swift */; };
 		5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */; };
+		612416EB5E1FD2BA922EC95E /* ProvidersSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B596814261B0017D5DA229B /* ProvidersSettingsView.swift */; };
+		616C584CB22C55329B75D6AA /* PipelineEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C6A694F974720EC6D260E6 /* PipelineEngineTests.swift */; };
 		881CC5C25C0E29E2615D43E9 /* OpenAILLMAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B751F8C366CBB88F0969FB7 /* OpenAILLMAdapter.swift */; };
+		8D3C66AA67926EFED1BEA4F9 /* FloatingPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED35521EF064C3DD72AEAF7B /* FloatingPanelView.swift */; };
+		986955AD1B9320A286565489 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DF36D517735FCBC5CAEAC5E /* SettingsWindow.swift */; };
 		9A4A952619737558F6C27DEA /* AudioRecorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93115B09E049CA65715AAC17 /* AudioRecorderTests.swift */; };
+		9CB1BC35EDD9256FD58E50B5 /* HistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D76820C5961833CFD33B2A3 /* HistoryManager.swift */; };
+		AA7C4E25E38AD86725E59DA8 /* BubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6538FF07F20D06B48F3A48ED /* BubbleView.swift */; };
+		B9B953E4E3B9D946D14C8B99 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801118FA91A2932F3084F496 /* FloatingPanel.swift */; };
 		C2D9DC54E3BA2D746F0796AE /* PipelineStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CB8265E0840DD636E0AF16 /* PipelineStateTests.swift */; };
+		D25BFFF9940827155193B1D0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B9C84AE3D51B84162809E7 /* SettingsView.swift */; };
 		D8A137DE472FD3D58987EEB9 /* TextOutputServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43FDD4AD7855B60EE0943CC /* TextOutputServiceTests.swift */; };
+		EC9D772EEC6F8F13930F4764 /* PipelineEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5141820B33262DE646676E /* PipelineEngine.swift */; };
+		F15CFE13888066F4171981A5 /* ScenesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B79AB11AF3CFC91E68B0E2 /* ScenesSettingsView.swift */; };
 		FB5CF1FB5841120292AA0A19 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */; };
 		FDC8844434BB8561775BEEEA /* VerboTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1524D48207089E7B518C69BB /* VerboTests.swift */; };
 /* End PBXBuildFile section */
@@ -45,29 +63,47 @@
 
 /* Begin PBXFileReference section */
 		01ADFB56F7D51FDFAF152B32 /* TextOutputService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextOutputService.swift; sourceTree = "<group>"; };
+		13D98EB68C1002C6D4375D93 /* HistoryManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManagerTests.swift; sourceTree = "<group>"; };
 		1524D48207089E7B518C69BB /* VerboTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboTests.swift; sourceTree = "<group>"; };
 		1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 		1ED63D3A5D2301B4132A54BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28B99A856F463E066096E9FF /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		2D76820C5961833CFD33B2A3 /* HistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManager.swift; sourceTree = "<group>"; };
+		2E06F7B949681F710C632A30 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigTests.swift; sourceTree = "<group>"; };
 		3B751F8C366CBB88F0969FB7 /* OpenAILLMAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAILLMAdapter.swift; sourceTree = "<group>"; };
+		49B79AB11AF3CFC91E68B0E2 /* ScenesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenesSettingsView.swift; sourceTree = "<group>"; };
+		49B9C84AE3D51B84162809E7 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		4DC9E8168CECC20B6933BE1B /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFlytekSTTAdapterTests.swift; sourceTree = "<group>"; };
+		5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		5DF36D517735FCBC5CAEAC5E /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 		612EAC0BD2157C66D515C2DD /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
+		6538FF07F20D06B48F3A48ED /* BubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BubbleView.swift; sourceTree = "<group>"; };
 		78B76157DDF8310BD0479997 /* PipelineState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineState.swift; sourceTree = "<group>"; };
 		7A439058C246590377183184 /* Verbo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Verbo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7BB1E911256A588CFA0DFDA4 /* OpenAILLMAdapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAILLMAdapterTests.swift; sourceTree = "<group>"; };
+		801118FA91A2932F3084F496 /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
 		847CDA8409A812473BE7EFC6 /* STTAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTAdapter.swift; sourceTree = "<group>"; };
 		8BA7C327ACFAC343416717AA /* IFlytekSTTAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFlytekSTTAdapter.swift; sourceTree = "<group>"; };
 		93115B09E049CA65715AAC17 /* AudioRecorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderTests.swift; sourceTree = "<group>"; };
 		9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecord.swift; sourceTree = "<group>"; };
 		9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboApp.swift; sourceTree = "<group>"; };
+		9B3086C1E4529C308B3DC4DA /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
+		9B596814261B0017D5DA229B /* ProvidersSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProvidersSettingsView.swift; sourceTree = "<group>"; };
 		9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		AD6ECAE7AE273CA981884EB6 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		B3293E4A3E37904545C16E7F /* PillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillView.swift; sourceTree = "<group>"; };
 		B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecordTests.swift; sourceTree = "<group>"; };
 		BD6B80B01DABB31132346229 /* VerboTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VerboTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C1C6A694F974720EC6D260E6 /* PipelineEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineEngineTests.swift; sourceTree = "<group>"; };
 		CF31F4458044DFDDE9BC8928 /* ConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigManager.swift; sourceTree = "<group>"; };
 		D43FDD4AD7855B60EE0943CC /* TextOutputServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextOutputServiceTests.swift; sourceTree = "<group>"; };
+		D59B904C482B17DBE8E05143 /* FloatingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingViewModel.swift; sourceTree = "<group>"; };
 		D7CB8265E0840DD636E0AF16 /* PipelineStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineStateTests.swift; sourceTree = "<group>"; };
 		E4606913A9D43F43F3AB3140 /* LLMAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMAdapter.swift; sourceTree = "<group>"; };
+		EC5141820B33262DE646676E /* PipelineEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineEngine.swift; sourceTree = "<group>"; };
+		ED35521EF064C3DD72AEAF7B /* FloatingPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelView.swift; sourceTree = "<group>"; };
 		F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneTests.swift; sourceTree = "<group>"; };
 		F7CC8A35EF546D6D9DA19EE7 /* ConfigManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigManagerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -93,6 +129,8 @@
 				14E9946AF96134CECEDE69E0 /* Models */,
 				D0777474B6B14782C49B6859 /* Resources */,
 				9D24B383211FB627C2BB3117 /* Utilities */,
+				B4BFF50AB84544A7064DC8AD /* ViewModels */,
+				D8DEA27F16643E7E024FD78A /* Views */,
 			);
 			path = Verbo;
 			sourceTree = "<group>";
@@ -117,11 +155,37 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		6FE37C0847AF193C2E56525E /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2E06F7B949681F710C632A30 /* AboutView.swift */,
+				5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */,
+				9B596814261B0017D5DA229B /* ProvidersSettingsView.swift */,
+				49B79AB11AF3CFC91E68B0E2 /* ScenesSettingsView.swift */,
+				49B9C84AE3D51B84162809E7 /* SettingsView.swift */,
+				5DF36D517735FCBC5CAEAC5E /* SettingsWindow.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		74AB0A5FB0EFF6F0CCEFE8A8 /* Floating */ = {
+			isa = PBXGroup;
+			children = (
+				6538FF07F20D06B48F3A48ED /* BubbleView.swift */,
+				801118FA91A2932F3084F496 /* FloatingPanel.swift */,
+				ED35521EF064C3DD72AEAF7B /* FloatingPanelView.swift */,
+				B3293E4A3E37904545C16E7F /* PillView.swift */,
+				9B3086C1E4529C308B3DC4DA /* WaveformView.swift */,
+			);
+			path = Floating;
+			sourceTree = "<group>";
+		};
 		9CFBCC1E6201DED682190DF4 /* Core */ = {
 			isa = PBXGroup;
 			children = (
 				93115B09E049CA65715AAC17 /* AudioRecorderTests.swift */,
 				F7CC8A35EF546D6D9DA19EE7 /* ConfigManagerTests.swift */,
+				13D98EB68C1002C6D4375D93 /* HistoryManagerTests.swift */,
 				D43FDD4AD7855B60EE0943CC /* TextOutputServiceTests.swift */,
 			);
 			path = Core;
@@ -138,6 +202,7 @@
 		A1019CC10BD15E94DFE85E3C /* VerboTests */ = {
 			isa = PBXGroup;
 			children = (
+				C1C6A694F974720EC6D260E6 /* PipelineEngineTests.swift */,
 				1524D48207089E7B518C69BB /* VerboTests.swift */,
 				DA2AB0235559E90C38301E1C /* Adapters */,
 				9CFBCC1E6201DED682190DF4 /* Core */,
@@ -157,6 +222,15 @@
 			path = Adapters;
 			sourceTree = "<group>";
 		};
+		B4BFF50AB84544A7064DC8AD /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				D59B904C482B17DBE8E05143 /* FloatingViewModel.swift */,
+				AD6ECAE7AE273CA981884EB6 /* SettingsViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
 		B7D56B802F3883C367C74823 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -174,6 +248,15 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		D8DEA27F16643E7E024FD78A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				74AB0A5FB0EFF6F0CCEFE8A8 /* Floating */,
+				6FE37C0847AF193C2E56525E /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		DA2AB0235559E90C38301E1C /* Adapters */ = {
 			isa = PBXGroup;
 			children = (
@@ -188,6 +271,9 @@
 			children = (
 				1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */,
 				CF31F4458044DFDDE9BC8928 /* ConfigManager.swift */,
+				2D76820C5961833CFD33B2A3 /* HistoryManager.swift */,
+				4DC9E8168CECC20B6933BE1B /* HotkeyManager.swift */,
+				EC5141820B33262DE646676E /* PipelineEngine.swift */,
 				01ADFB56F7D51FDFAF152B32 /* TextOutputService.swift */,
 			);
 			path = Core;
@@ -279,19 +365,35 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				050FDBF06343FA161D422B8F /* AboutView.swift in Sources */,
 				4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */,
 				50DB8A1047A0EF4CC901A8DC /* AudioRecorder.swift in Sources */,
+				AA7C4E25E38AD86725E59DA8 /* BubbleView.swift in Sources */,
 				59969CDA808AEF5AAA82DAE5 /* ConfigManager.swift in Sources */,
 				FB5CF1FB5841120292AA0A19 /* DesignTokens.swift in Sources */,
+				B9B953E4E3B9D946D14C8B99 /* FloatingPanel.swift in Sources */,
+				8D3C66AA67926EFED1BEA4F9 /* FloatingPanelView.swift in Sources */,
+				479513BB54C6DB77DB75D9DD /* FloatingViewModel.swift in Sources */,
+				14EA1FABFBFD5CE4516F9E92 /* GeneralSettingsView.swift in Sources */,
+				9CB1BC35EDD9256FD58E50B5 /* HistoryManager.swift in Sources */,
 				1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */,
+				314107DE4B6407FBC4AD7420 /* HotkeyManager.swift in Sources */,
 				1E13A2BF6C74610D90CDCC55 /* IFlytekSTTAdapter.swift in Sources */,
 				3008DC0634B3551906738701 /* LLMAdapter.swift in Sources */,
 				881CC5C25C0E29E2615D43E9 /* OpenAILLMAdapter.swift in Sources */,
+				4B2687A34090A4425983A8C7 /* PillView.swift in Sources */,
+				EC9D772EEC6F8F13930F4764 /* PipelineEngine.swift in Sources */,
 				249F340650F161A9ACC01923 /* PipelineState.swift in Sources */,
+				612416EB5E1FD2BA922EC95E /* ProvidersSettingsView.swift in Sources */,
 				242F9AF07C0A0D883374A281 /* STTAdapter.swift in Sources */,
 				28F252EEEE887689BBA65302 /* Scene.swift in Sources */,
+				F15CFE13888066F4171981A5 /* ScenesSettingsView.swift in Sources */,
+				D25BFFF9940827155193B1D0 /* SettingsView.swift in Sources */,
+				0B20B8CF6DC30E5CBB7E12F4 /* SettingsViewModel.swift in Sources */,
+				986955AD1B9320A286565489 /* SettingsWindow.swift in Sources */,
 				44422E0F997C233B8E5631FF /* TextOutputService.swift in Sources */,
 				3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */,
+				2096B55FE1A00F42EB03F8E7 /* WaveformView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,9 +404,11 @@
 				0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */,
 				9A4A952619737558F6C27DEA /* AudioRecorderTests.swift in Sources */,
 				55CD7AF8C0D1F35B75EED66A /* ConfigManagerTests.swift in Sources */,
+				30AF0ECD22973F1A0E034300 /* HistoryManagerTests.swift in Sources */,
 				5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */,
 				071AE2F25792F0DFBC0D93B7 /* IFlytekSTTAdapterTests.swift in Sources */,
 				152E22778F4CA45ACE4AFF3E /* OpenAILLMAdapterTests.swift in Sources */,
+				616C584CB22C55329B75D6AA /* PipelineEngineTests.swift in Sources */,
 				C2D9DC54E3BA2D746F0796AE /* PipelineStateTests.swift in Sources */,
 				145109E557E743572666E7D6 /* SceneTests.swift in Sources */,
 				D8A137DE472FD3D58987EEB9 /* TextOutputServiceTests.swift in Sources */,
