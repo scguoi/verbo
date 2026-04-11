@@ -93,3 +93,5 @@ final class TextOutputService: Sendable {
         NSPasteboard.general.string(forType: .string)
     }
 }
+
+extension TextOutputService: TextOutputting {}

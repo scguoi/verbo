@@ -34,12 +34,24 @@ final class FloatingViewModel {
 
     // MARK: - Private
 
-    private let pipelineEngine = PipelineEngine()
-    private let audioRecorder = AudioRecorder()
-    private let textOutputService = TextOutputService()
+    private let pipelineEngine: PipelineEngine
+    private let audioRecorder: any AudioRecording
+    private let textOutputService: any TextOutputting
     private var recordingTimer: Timer?
     private var collapseTask: Task<Void, Never>?
     private var pipelineTask: Task<Void, Never>?
+
+    // MARK: - Init
+
+    init(
+        audioRecorder: any AudioRecording = AudioRecorder(),
+        textOutputService: any TextOutputting = TextOutputService(),
+        pipelineEngine: PipelineEngine = PipelineEngine()
+    ) {
+        self.audioRecorder = audioRecorder
+        self.textOutputService = textOutputService
+        self.pipelineEngine = pipelineEngine
+    }
 
     // MARK: - Computed
 

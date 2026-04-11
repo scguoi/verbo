@@ -151,3 +151,5 @@ actor AudioRecorder {
         audioLevels = levels
     }
 }
+
+extension AudioRecorder: AudioRecording {}
