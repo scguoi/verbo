@@ -275,4 +275,85 @@ describe('OpenAI LLM adapter', () => {
       expect(result).toBe('Hello world')
     })
   })
+
+  describe('complete() edge cases', () => {
+    it('should return empty string when choices array is empty', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [] }),
+      } as unknown as Response)
+      const adapter = createOpenAIAdapter(DEFAULT_CONFIG)
+
+      const result = await adapter.complete({ prompt: 'hello' })
+
+      expect(result).toBe('')
+    })
+
+    it('should return empty string when content is undefined', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: {} }] }),
+      } as unknown as Response)
+      const adapter = createOpenAIAdapter(DEFAULT_CONFIG)
+
+      const result = await adapter.complete({ prompt: 'hello' })
+
+      expect(result).toBe('')
+    })
+  })
+
+  describe('completeStream() edge cases', () => {
+    it('should return empty string when stream only sends [DONE]', async () => {
+      const sseChunks = ['data: [DONE]\n\n']
+      fetchMock.mockResolvedValue(makeStreamResponse(sseChunks))
+      const adapter = createOpenAIAdapter(DEFAULT_CONFIG)
+
+      const result = await adapter.completeStream!({ prompt: 'hi' }, () => {})
+
+      expect(result).toBe('')
+    })
+
+    it('should skip empty data line gracefully', async () => {
+      const sseChunks = [
+        'data: \n\n',
+        'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]
+      fetchMock.mockResolvedValue(makeStreamResponse(sseChunks))
+      const adapter = createOpenAIAdapter(DEFAULT_CONFIG)
+
+      const result = await adapter.completeStream!({ prompt: 'hi' }, () => {})
+
+      expect(result).toBe('ok')
+    })
+
+    it('should handle multiple [DONE] markers without error', async () => {
+      const sseChunks = [
+        'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
+        'data: [DONE]\n\n',
+        'data: [DONE]\n\n',
+      ]
+      fetchMock.mockResolvedValue(makeStreamResponse(sseChunks))
+      const adapter = createOpenAIAdapter(DEFAULT_CONFIG)
+
+      const result = await adapter.completeStream!({ prompt: 'hi' }, () => {})
+
+      expect(result).toBe('ok')
+    })
+
+    it('should handle stream ending with incomplete buffer (no trailing newline)', async () => {
+      const sseChunks = [
+        'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":" end"}}]}',
+      ]
+      fetchMock.mockResolvedValue(makeStreamResponse(sseChunks))
+      const adapter = createOpenAIAdapter(DEFAULT_CONFIG)
+
+      const result = await adapter.completeStream!({ prompt: 'hi' }, () => {})
+
+      expect(result).toBe('partial end')
+    })
+  })
 })

@@ -5,6 +5,7 @@ import {
   mapLanguage,
   parseIFlytekResponse,
   createResultAccumulator,
+  splitIntoFrames,
 } from './iflytek'
 import type { STTAdapter, STTOptions } from './types'
 
@@ -170,6 +171,38 @@ describe('iFlytek STT adapter', () => {
     })
   })
 
+  describe('splitIntoFrames', () => {
+    it('should return single frame for buffer < 1280 bytes', () => {
+      const buffer = new ArrayBuffer(500)
+      const frames = splitIntoFrames(buffer)
+      expect(frames).toHaveLength(1)
+      expect(frames[0].byteLength).toBe(500)
+    })
+
+    it('should return one frame for exactly 1280 bytes', () => {
+      const buffer = new ArrayBuffer(1280)
+      const frames = splitIntoFrames(buffer)
+      expect(frames).toHaveLength(1)
+      expect(frames[0].byteLength).toBe(1280)
+    })
+
+    it('should return two frames for 2560 bytes', () => {
+      const buffer = new ArrayBuffer(2560)
+      const frames = splitIntoFrames(buffer)
+      expect(frames).toHaveLength(2)
+      expect(frames[0].byteLength).toBe(1280)
+      expect(frames[1].byteLength).toBe(1280)
+    })
+
+    it('should return two frames for 1500 bytes (second frame smaller)', () => {
+      const buffer = new ArrayBuffer(1500)
+      const frames = splitIntoFrames(buffer)
+      expect(frames).toHaveLength(2)
+      expect(frames[0].byteLength).toBe(1280)
+      expect(frames[1].byteLength).toBe(220)
+    })
+  })
+
   describe('createResultAccumulator', () => {
     it('should accumulate appended results', () => {
       const acc = createResultAccumulator()
@@ -204,6 +237,65 @@ describe('iFlytek STT adapter', () => {
       expect(r1).toBe('hello')
       const r2 = acc.update({ text: ' world', sn: 1, pgs: undefined, rgBegin: 0, rgEnd: 0, isLast: true })
       expect(r2).toBe('hello world')
+    })
+
+    it('should reconstruct correctly when sn arrives out of order', () => {
+      const acc = createResultAccumulator()
+      // sn=2 arrives before sn=1
+      acc.update({ text: 'third', sn: 2, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      acc.update({ text: 'first', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      const r = acc.update({ text: 'second', sn: 1, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(r).toBe('firstsecondthird')
+    })
+
+    it('should handle sparse sn (missing sn 1 and 2)', () => {
+      const acc = createResultAccumulator()
+      acc.update({ text: 'zero', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      const r = acc.update({ text: 'three', sn: 3, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      // sn 1 and 2 are missing, should skip them
+      expect(r).toBe('zerothree')
+    })
+
+    it('should handle two consecutive rpl operations', () => {
+      const acc = createResultAccumulator()
+      acc.update({ text: 'aaa', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      acc.update({ text: 'bbb', sn: 1, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      // First replace: replace sn 1
+      acc.update({ text: 'BBB', sn: 2, pgs: 'rpl', rgBegin: 1, rgEnd: 1, isLast: false })
+      // Second replace: replace sn 0; sn 2=BBB stays, sn 3=AAA added
+      const r = acc.update({ text: 'AAA', sn: 3, pgs: 'rpl', rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(r).toBe('BBBAAA')
+    })
+
+    it('getText() returns same result as last update()', () => {
+      const acc = createResultAccumulator()
+      acc.update({ text: 'hello', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      const lastResult = acc.update({ text: ' world', sn: 1, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(acc.getText()).toBe(lastResult)
+    })
+  })
+
+  describe('mapLanguage edge cases', () => {
+    it('should return cn_mandarin for empty string', () => {
+      expect(mapLanguage('')).toBe('cn_mandarin')
+    })
+  })
+
+  describe('parseIFlytekResponse edge cases', () => {
+    it('should handle null entries in cw array gracefully', () => {
+      const response = {
+        data: {
+          result: {
+            sn: 0,
+            ws: [
+              { cw: [null, { w: 'hello' }, null] },
+            ],
+          },
+        },
+      }
+      // null entries have no .w, flatMap produces them, map extracts w ?? ''
+      const parsed = parseIFlytekResponse(response)
+      expect(parsed.text).toBe('hello')
     })
   })
 })
