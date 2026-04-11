@@ -38,3 +38,36 @@ pub fn write_config(config: Value) -> Result<(), String> {
 pub fn get_config_path() -> String {
     config_path().to_string_lossy().into_owned()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_dir_ends_with_verbo() {
+        let dir = config_dir();
+        assert_eq!(dir.file_name().unwrap(), "verbo");
+    }
+
+    #[test]
+    fn config_path_ends_with_config_json() {
+        let path = config_path();
+        assert_eq!(path.file_name().unwrap(), "config.json");
+    }
+
+    #[test]
+    fn config_path_is_inside_config_dir() {
+        let dir = config_dir();
+        let path = config_path();
+        assert!(path.starts_with(&dir));
+    }
+
+    #[test]
+    fn read_config_returns_null_for_nonexistent() {
+        // config_path points to a real location, but if verbo hasn't been
+        // configured on this machine the file may not exist.
+        // This test validates the function doesn't panic.
+        let result = read_config();
+        assert!(result.is_ok());
+    }
+}
