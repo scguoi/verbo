@@ -5,23 +5,65 @@ fn escape_applescript(text: &str) -> String {
     text.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
+fn is_ascii_only(text: &str) -> bool {
+    text.bytes().all(|b| b.is_ascii())
+}
+
 #[tauri::command]
-pub fn simulate_input(text: String) -> Result<(), String> {
-    let escaped = escape_applescript(&text);
-    let script = format!(
-        "tell application \"System Events\" to keystroke \"{}\"",
-        escaped
-    );
+pub fn simulate_input(app: AppHandle, text: String) -> Result<(), String> {
+    if is_ascii_only(&text) {
+        // ASCII text: use keystroke directly (faster, no clipboard side effect)
+        let escaped = escape_applescript(&text);
+        let script = format!(
+            "tell application \"System Events\" to keystroke \"{}\"",
+            escaped
+        );
+        let output = std::process::Command::new("osascript")
+            .arg("-e")
+            .arg(&script)
+            .output()
+            .map_err(|e| format!("Failed to run osascript: {e}"))?;
 
-    let output = std::process::Command::new("osascript")
-        .arg("-e")
-        .arg(&script)
-        .output()
-        .map_err(|e| format!("Failed to run osascript: {e}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("osascript error: {stderr}"));
+        }
+    } else {
+        // Non-ASCII (Chinese, etc.): save clipboard → write text → paste → restore clipboard
+        let clipboard = app.clipboard();
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("osascript error: {stderr}"));
+        // Save current clipboard content
+        let saved = clipboard.read_text().ok();
+
+        // Write our text to clipboard
+        clipboard
+            .write_text(&text)
+            .map_err(|e| format!("Failed to write clipboard: {e}"))?;
+
+        // Simulate Cmd+V to paste
+        let script = r#"tell application "System Events" to keystroke "v" using command down"#;
+        let output = std::process::Command::new("osascript")
+            .arg("-e")
+            .arg(script)
+            .output()
+            .map_err(|e| format!("Failed to run osascript: {e}"))?;
+
+        if !output.status.success() {
+            // Restore clipboard before returning error
+            if let Some(ref s) = saved {
+                let _ = clipboard.write_text(s);
+            }
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("osascript error: {stderr}"));
+        }
+
+        // Brief delay to let paste complete before restoring clipboard
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        // Restore original clipboard content
+        if let Some(s) = saved {
+            let _ = clipboard.write_text(&s);
+        }
     }
 
     Ok(())
