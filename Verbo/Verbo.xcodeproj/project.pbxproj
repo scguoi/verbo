@@ -19,11 +19,13 @@
 		3008DC0634B3551906738701 /* LLMAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4606913A9D43F43F3AB3140 /* LLMAdapter.swift */; };
 		3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */; };
 		4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B99A856F463E066096E9FF /* AppConfig.swift */; };
+		50DB8A1047A0EF4CC901A8DC /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */; };
 		55CA0B03B0FE018C03CF97B8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1ED63D3A5D2301B4132A54BA /* Assets.xcassets */; };
 		55CD7AF8C0D1F35B75EED66A /* ConfigManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7CC8A35EF546D6D9DA19EE7 /* ConfigManagerTests.swift */; };
 		59969CDA808AEF5AAA82DAE5 /* ConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF31F4458044DFDDE9BC8928 /* ConfigManager.swift */; };
 		5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */; };
 		881CC5C25C0E29E2615D43E9 /* OpenAILLMAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B751F8C366CBB88F0969FB7 /* OpenAILLMAdapter.swift */; };
+		9A4A952619737558F6C27DEA /* AudioRecorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93115B09E049CA65715AAC17 /* AudioRecorderTests.swift */; };
 		C2D9DC54E3BA2D746F0796AE /* PipelineStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CB8265E0840DD636E0AF16 /* PipelineStateTests.swift */; };
 		FB5CF1FB5841120292AA0A19 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */; };
 		FDC8844434BB8561775BEEEA /* VerboTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1524D48207089E7B518C69BB /* VerboTests.swift */; };
@@ -41,6 +43,7 @@
 
 /* Begin PBXFileReference section */
 		1524D48207089E7B518C69BB /* VerboTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboTests.swift; sourceTree = "<group>"; };
+		1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 		1ED63D3A5D2301B4132A54BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28B99A856F463E066096E9FF /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigTests.swift; sourceTree = "<group>"; };
@@ -52,6 +55,7 @@
 		7BB1E911256A588CFA0DFDA4 /* OpenAILLMAdapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAILLMAdapterTests.swift; sourceTree = "<group>"; };
 		847CDA8409A812473BE7EFC6 /* STTAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTAdapter.swift; sourceTree = "<group>"; };
 		8BA7C327ACFAC343416717AA /* IFlytekSTTAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFlytekSTTAdapter.swift; sourceTree = "<group>"; };
+		93115B09E049CA65715AAC17 /* AudioRecorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderTests.swift; sourceTree = "<group>"; };
 		9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecord.swift; sourceTree = "<group>"; };
 		9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboApp.swift; sourceTree = "<group>"; };
 		9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -112,6 +116,7 @@
 		9CFBCC1E6201DED682190DF4 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				93115B09E049CA65715AAC17 /* AudioRecorderTests.swift */,
 				F7CC8A35EF546D6D9DA19EE7 /* ConfigManagerTests.swift */,
 			);
 			path = Core;
@@ -176,6 +181,7 @@
 		E2B584DFFF7B9807A48940CC /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */,
 				CF31F4458044DFDDE9BC8928 /* ConfigManager.swift */,
 			);
 			path = Core;
@@ -268,6 +274,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */,
+				50DB8A1047A0EF4CC901A8DC /* AudioRecorder.swift in Sources */,
 				59969CDA808AEF5AAA82DAE5 /* ConfigManager.swift in Sources */,
 				FB5CF1FB5841120292AA0A19 /* DesignTokens.swift in Sources */,
 				1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */,
@@ -286,6 +293,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */,
+				9A4A952619737558F6C27DEA /* AudioRecorderTests.swift in Sources */,
 				55CD7AF8C0D1F35B75EED66A /* ConfigManagerTests.swift in Sources */,
 				5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */,
 				071AE2F25792F0DFBC0D93B7 /* IFlytekSTTAdapterTests.swift in Sources */,
