@@ -7,9 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		071AE2F25792F0DFBC0D93B7 /* IFlytekSTTAdapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */; };
 		0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */; };
 		1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */; };
 		145109E557E743572666E7D6 /* SceneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */; };
+		1E13A2BF6C74610D90CDCC55 /* IFlytekSTTAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7C327ACFAC343416717AA /* IFlytekSTTAdapter.swift */; };
+		242F9AF07C0A0D883374A281 /* STTAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847CDA8409A812473BE7EFC6 /* STTAdapter.swift */; };
 		249F340650F161A9ACC01923 /* PipelineState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78B76157DDF8310BD0479997 /* PipelineState.swift */; };
 		28F252EEEE887689BBA65302 /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612EAC0BD2157C66D515C2DD /* Scene.swift */; };
 		3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */; };
@@ -38,9 +41,12 @@
 		1ED63D3A5D2301B4132A54BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28B99A856F463E066096E9FF /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigTests.swift; sourceTree = "<group>"; };
+		4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFlytekSTTAdapterTests.swift; sourceTree = "<group>"; };
 		612EAC0BD2157C66D515C2DD /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
 		78B76157DDF8310BD0479997 /* PipelineState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineState.swift; sourceTree = "<group>"; };
 		7A439058C246590377183184 /* Verbo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Verbo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		847CDA8409A812473BE7EFC6 /* STTAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTAdapter.swift; sourceTree = "<group>"; };
+		8BA7C327ACFAC343416717AA /* IFlytekSTTAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFlytekSTTAdapter.swift; sourceTree = "<group>"; };
 		9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecord.swift; sourceTree = "<group>"; };
 		9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboApp.swift; sourceTree = "<group>"; };
 		9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -68,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */,
+				A1F82681EBD1CA43D613FE34 /* Adapters */,
 				E2B584DFFF7B9807A48940CC /* Core */,
 				14E9946AF96134CECEDE69E0 /* Models */,
 				D0777474B6B14782C49B6859 /* Resources */,
@@ -116,10 +123,20 @@
 			isa = PBXGroup;
 			children = (
 				1524D48207089E7B518C69BB /* VerboTests.swift */,
+				DA2AB0235559E90C38301E1C /* Adapters */,
 				9CFBCC1E6201DED682190DF4 /* Core */,
 				4CFC727FA5082AE0FF587D90 /* Models */,
 			);
 			path = VerboTests;
+			sourceTree = "<group>";
+		};
+		A1F82681EBD1CA43D613FE34 /* Adapters */ = {
+			isa = PBXGroup;
+			children = (
+				8BA7C327ACFAC343416717AA /* IFlytekSTTAdapter.swift */,
+				847CDA8409A812473BE7EFC6 /* STTAdapter.swift */,
+			);
+			path = Adapters;
 			sourceTree = "<group>";
 		};
 		B7D56B802F3883C367C74823 /* Products */ = {
@@ -137,6 +154,14 @@
 				1ED63D3A5D2301B4132A54BA /* Assets.xcassets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		DA2AB0235559E90C38301E1C /* Adapters */ = {
+			isa = PBXGroup;
+			children = (
+				4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */,
+			);
+			path = Adapters;
 			sourceTree = "<group>";
 		};
 		E2B584DFFF7B9807A48940CC /* Core */ = {
@@ -237,7 +262,9 @@
 				59969CDA808AEF5AAA82DAE5 /* ConfigManager.swift in Sources */,
 				FB5CF1FB5841120292AA0A19 /* DesignTokens.swift in Sources */,
 				1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */,
+				1E13A2BF6C74610D90CDCC55 /* IFlytekSTTAdapter.swift in Sources */,
 				249F340650F161A9ACC01923 /* PipelineState.swift in Sources */,
+				242F9AF07C0A0D883374A281 /* STTAdapter.swift in Sources */,
 				28F252EEEE887689BBA65302 /* Scene.swift in Sources */,
 				3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */,
 			);
@@ -250,6 +277,7 @@
 				0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */,
 				55CD7AF8C0D1F35B75EED66A /* ConfigManagerTests.swift in Sources */,
 				5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */,
+				071AE2F25792F0DFBC0D93B7 /* IFlytekSTTAdapterTests.swift in Sources */,
 				C2D9DC54E3BA2D746F0796AE /* PipelineStateTests.swift in Sources */,
 				145109E557E743572666E7D6 /* SceneTests.swift in Sources */,
 				FDC8844434BB8561775BEEEA /* VerboTests.swift in Sources */,
