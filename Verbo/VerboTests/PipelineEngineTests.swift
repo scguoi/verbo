@@ -2,46 +2,6 @@ import Testing
 import Foundation
 @testable import Verbo
 
-// MARK: - Mock Adapters
-
-final class MockSTTAdapter: STTAdapter, @unchecked Sendable {
-    let name = "mock-stt"
-    let supportsStreaming = true
-    var transcribeResult = "你好世界"
-
-    func transcribe(audio: Data, lang: String) async throws -> String { transcribeResult }
-
-    func transcribeStream(audioStream: AsyncStream<Data>, lang: String) -> AsyncThrowingStream<String, Error> {
-        let result = transcribeResult
-        return AsyncThrowingStream { continuation in
-            Task {
-                for await _ in audioStream {}
-                continuation.yield(result)
-                continuation.finish()
-            }
-        }
-    }
-}
-
-final class MockLLMAdapter: LLMAdapter, @unchecked Sendable {
-    let name = "mock-llm"
-    var completeResult = "Polished text"
-
-    func complete(prompt: String) async throws -> String { completeResult }
-
-    func completeStream(prompt: String) -> AsyncThrowingStream<String, Error> {
-        let result = completeResult
-        return AsyncThrowingStream { continuation in
-            Task {
-                for (i, _) in result.enumerated() {
-                    continuation.yield(String(result.prefix(i + 1)))
-                }
-                continuation.finish()
-            }
-        }
-    }
-}
-
 // MARK: - Helper: Make Audio Stream
 
 private func makeAudioStream(chunks: [Data] = [Data()]) -> AsyncStream<Data> {
