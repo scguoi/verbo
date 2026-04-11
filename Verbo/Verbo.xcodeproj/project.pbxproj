@@ -7,8 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */; };
+		1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */; };
+		145109E557E743572666E7D6 /* SceneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */; };
+		249F340650F161A9ACC01923 /* PipelineState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78B76157DDF8310BD0479997 /* PipelineState.swift */; };
+		28F252EEEE887689BBA65302 /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612EAC0BD2157C66D515C2DD /* Scene.swift */; };
 		3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */; };
+		4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B99A856F463E066096E9FF /* AppConfig.swift */; };
 		55CA0B03B0FE018C03CF97B8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1ED63D3A5D2301B4132A54BA /* Assets.xcassets */; };
+		5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */; };
+		C2D9DC54E3BA2D746F0796AE /* PipelineStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CB8265E0840DD636E0AF16 /* PipelineStateTests.swift */; };
 		FDC8844434BB8561775BEEEA /* VerboTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1524D48207089E7B518C69BB /* VerboTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -25,16 +33,36 @@
 /* Begin PBXFileReference section */
 		1524D48207089E7B518C69BB /* VerboTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboTests.swift; sourceTree = "<group>"; };
 		1ED63D3A5D2301B4132A54BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		28B99A856F463E066096E9FF /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigTests.swift; sourceTree = "<group>"; };
+		612EAC0BD2157C66D515C2DD /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
+		78B76157DDF8310BD0479997 /* PipelineState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineState.swift; sourceTree = "<group>"; };
 		7A439058C246590377183184 /* Verbo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Verbo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecord.swift; sourceTree = "<group>"; };
 		9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboApp.swift; sourceTree = "<group>"; };
+		B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecordTests.swift; sourceTree = "<group>"; };
 		BD6B80B01DABB31132346229 /* VerboTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VerboTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D7CB8265E0840DD636E0AF16 /* PipelineStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineStateTests.swift; sourceTree = "<group>"; };
+		F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		14E9946AF96134CECEDE69E0 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				28B99A856F463E066096E9FF /* AppConfig.swift */,
+				9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */,
+				78B76157DDF8310BD0479997 /* PipelineState.swift */,
+				612EAC0BD2157C66D515C2DD /* Scene.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		3AF34662D80ADC260F7403D8 /* Verbo */ = {
 			isa = PBXGroup;
 			children = (
 				9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */,
+				14E9946AF96134CECEDE69E0 /* Models */,
 				D0777474B6B14782C49B6859 /* Resources */,
 			);
 			path = Verbo;
@@ -49,10 +77,22 @@
 			);
 			sourceTree = "<group>";
 		};
+		4CFC727FA5082AE0FF587D90 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */,
+				B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */,
+				D7CB8265E0840DD636E0AF16 /* PipelineStateTests.swift */,
+				F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		A1019CC10BD15E94DFE85E3C /* VerboTests */ = {
 			isa = PBXGroup;
 			children = (
 				1524D48207089E7B518C69BB /* VerboTests.swift */,
+				4CFC727FA5082AE0FF587D90 /* Models */,
 			);
 			path = VerboTests;
 			sourceTree = "<group>";
@@ -160,6 +200,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */,
+				1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */,
+				249F340650F161A9ACC01923 /* PipelineState.swift in Sources */,
+				28F252EEEE887689BBA65302 /* Scene.swift in Sources */,
 				3051868901A0C6ADEED51AE9 /* VerboApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -168,6 +212,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */,
+				5DE6DEFBCC5F0B5DA137C3BD /* HistoryRecordTests.swift in Sources */,
+				C2D9DC54E3BA2D746F0796AE /* PipelineStateTests.swift in Sources */,
+				145109E557E743572666E7D6 /* SceneTests.swift in Sources */,
 				FDC8844434BB8561775BEEEA /* VerboTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
