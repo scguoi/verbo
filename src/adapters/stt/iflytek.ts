@@ -20,18 +20,81 @@ export function mapLanguage(lang: string): string {
   return LANGUAGE_MAP[lang] ?? DEFAULT_LANGUAGE
 }
 
+export interface IFlytekParsedResult {
+  readonly text: string
+  readonly sn: number
+  readonly pgs: 'apd' | 'rpl' | undefined
+  readonly rgBegin: number
+  readonly rgEnd: number
+  readonly isLast: boolean
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseIFlytekResponse(response: any): string {
-  const ws = response?.data?.result?.ws
-  if (!Array.isArray(ws)) {
-    return ''
+export function parseIFlytekResponse(response: any): IFlytekParsedResult {
+  const result = response?.data?.result
+  const ws = result?.ws
+  const text = Array.isArray(ws)
+    ? ws
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .flatMap((item: any) => item.cw ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((cw: any) => cw.w ?? '')
+        .join('')
+    : ''
+
+  const rg = result?.rg ?? [0, 0]
+
+  return {
+    text,
+    sn: result?.sn ?? 0,
+    pgs: result?.pgs,
+    rgBegin: rg[0] ?? 0,
+    rgEnd: rg[1] ?? 0,
+    isLast: response?.data?.status === 2,
   }
-  return ws
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .flatMap((item: any) => item.cw ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((cw: any) => cw.w ?? '')
-    .join('')
+}
+
+/**
+ * Manages sentence-level accumulation for iFlytek streaming results.
+ * Handles `pgs: "rpl"` (replace previous sentences in range) and `pgs: "apd"` (append).
+ */
+export function createResultAccumulator() {
+  const sentences = new Map<number, string>()
+  let maxSn = 0
+
+  return {
+    update(parsed: IFlytekParsedResult): string {
+      if (parsed.pgs === 'rpl') {
+        // Replace: remove sentences in range [rgBegin, rgEnd], set current sn
+        for (let i = parsed.rgBegin; i <= parsed.rgEnd; i++) {
+          sentences.delete(i)
+        }
+      }
+      sentences.set(parsed.sn, parsed.text)
+      maxSn = Math.max(maxSn, parsed.sn)
+
+      // Reconstruct full text from all sentences in order
+      const parts: string[] = []
+      for (let i = 0; i <= maxSn; i++) {
+        const s = sentences.get(i)
+        if (s !== undefined) {
+          parts.push(s)
+        }
+      }
+      return parts.join('')
+    },
+
+    getText(): string {
+      const parts: string[] = []
+      for (let i = 0; i <= maxSn; i++) {
+        const s = sentences.get(i)
+        if (s !== undefined) {
+          parts.push(s)
+        }
+      }
+      return parts.join('')
+    },
+  }
 }
 
 async function hmacSha256(key: string, message: string): Promise<string> {
@@ -121,11 +184,12 @@ function openWebSocket(
   config: IFlytekConfig,
   lang: string,
   frames: readonly ArrayBuffer[],
-  onResult: (text: string, isLast: boolean) => void,
+  onResult: (fullText: string, isLast: boolean) => void,
   onError: (error: Error) => void,
   onComplete: () => void,
 ): void {
   const ws = new WebSocket(url)
+  const accumulator = createResultAccumulator()
   let frameIndex = 0
 
   ws.onopen = () => {
@@ -159,9 +223,10 @@ function openWebSocket(
         ws.close()
         return
       }
-      const text = parseIFlytekResponse(response)
-      const isLast = response.data?.status === 2
-      onResult(text, isLast)
+      const parsed = parseIFlytekResponse(response)
+      const fullText = accumulator.update(parsed)
+      const isLast = parsed.isLast
+      onResult(fullText, isLast)
       if (isLast) {
         ws.close()
         onComplete()
@@ -191,22 +256,22 @@ export function createIFlytekAdapter(config: IFlytekConfig): STTAdapter {
       const frames = splitIntoFrames(audio)
 
       return new Promise<string>((resolve, reject) => {
-        let accumulated = ''
+        let finalText = ''
 
         openWebSocket(
           url,
           config,
           options.lang,
           frames,
-          (text, isLast) => {
-            accumulated += text
+          (fullText, isLast) => {
+            finalText = fullText
             if (isLast) {
-              resolve(accumulated)
+              resolve(finalText)
             }
           },
           reject,
           () => {
-            resolve(accumulated)
+            resolve(finalText)
           },
         )
       })
@@ -244,20 +309,20 @@ export function createIFlytekAdapter(config: IFlytekConfig): STTAdapter {
       const frames = splitIntoFrames(combined.buffer)
 
       return new Promise<string>((resolve, reject) => {
-        let accumulated = ''
+        let finalText = ''
 
         openWebSocket(
           url,
           config,
           options.lang,
           frames,
-          (text) => {
-            accumulated += text
-            onPartial(accumulated)
+          (fullText) => {
+            finalText = fullText
+            onPartial(finalText)
           },
           reject,
           () => {
-            resolve(accumulated)
+            resolve(finalText)
           },
         )
       })

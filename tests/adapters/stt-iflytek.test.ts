@@ -4,6 +4,7 @@ import {
   buildAuthUrl,
   mapLanguage,
   parseIFlytekResponse,
+  createResultAccumulator,
 } from '../../src/adapters/stt/iflytek'
 import type { STTAdapter, STTOptions } from '../../src/adapters/stt/types'
 
@@ -95,6 +96,7 @@ describe('iFlytek STT adapter', () => {
       const response = {
         data: {
           result: {
+            sn: 0,
             ws: [
               { cw: [{ w: 'hello' }] },
               { cw: [{ w: ' world' }] },
@@ -102,37 +104,106 @@ describe('iFlytek STT adapter', () => {
           },
         },
       }
-      expect(parseIFlytekResponse(response)).toBe('hello world')
+      expect(parseIFlytekResponse(response).text).toBe('hello world')
     })
 
     it('should return empty string for empty ws array', () => {
       const response = {
         data: {
           result: {
+            sn: 0,
             ws: [],
           },
         },
       }
-      expect(parseIFlytekResponse(response)).toBe('')
+      expect(parseIFlytekResponse(response).text).toBe('')
     })
 
     it('should handle multiple cw entries per ws item', () => {
       const response = {
         data: {
           result: {
+            sn: 0,
             ws: [
               { cw: [{ w: 'a' }, { w: 'b' }] },
             ],
           },
         },
       }
-      expect(parseIFlytekResponse(response)).toBe('ab')
+      expect(parseIFlytekResponse(response).text).toBe('ab')
     })
 
     it('should return empty string when data is missing', () => {
-      expect(parseIFlytekResponse({})).toBe('')
-      expect(parseIFlytekResponse({ data: {} })).toBe('')
-      expect(parseIFlytekResponse({ data: { result: {} } })).toBe('')
+      expect(parseIFlytekResponse({}).text).toBe('')
+      expect(parseIFlytekResponse({ data: {} }).text).toBe('')
+      expect(parseIFlytekResponse({ data: { result: {} } }).text).toBe('')
+    })
+
+    it('should extract pgs and sn fields', () => {
+      const response = {
+        data: {
+          result: {
+            sn: 2,
+            pgs: 'rpl',
+            rg: [1, 2],
+            ws: [{ cw: [{ w: 'text' }] }],
+          },
+          status: 1,
+        },
+      }
+      const parsed = parseIFlytekResponse(response)
+      expect(parsed.sn).toBe(2)
+      expect(parsed.pgs).toBe('rpl')
+      expect(parsed.rgBegin).toBe(1)
+      expect(parsed.rgEnd).toBe(2)
+      expect(parsed.isLast).toBe(false)
+    })
+
+    it('should detect isLast from status 2', () => {
+      const response = {
+        data: {
+          result: { sn: 0, ws: [] },
+          status: 2,
+        },
+      }
+      expect(parseIFlytekResponse(response).isLast).toBe(true)
+    })
+  })
+
+  describe('createResultAccumulator', () => {
+    it('should accumulate appended results', () => {
+      const acc = createResultAccumulator()
+      const r1 = acc.update({ text: 'hello', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(r1).toBe('hello')
+      const r2 = acc.update({ text: ' world', sn: 1, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(r2).toBe('hello world')
+    })
+
+    it('should handle replace (rpl) by removing sentences in range', () => {
+      const acc = createResultAccumulator()
+      acc.update({ text: 'hello', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      acc.update({ text: ' wor', sn: 1, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      // Replace sn 0-1 with corrected text
+      const r = acc.update({ text: 'hello world', sn: 2, pgs: 'rpl', rgBegin: 0, rgEnd: 1, isLast: false })
+      expect(r).toBe('hello world')
+    })
+
+    it('should handle sequential replacements correctly', () => {
+      const acc = createResultAccumulator()
+      acc.update({ text: 'I', sn: 0, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      acc.update({ text: ' thin', sn: 1, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      // Replace partial with full word
+      acc.update({ text: ' think', sn: 2, pgs: 'rpl', rgBegin: 1, rgEnd: 1, isLast: false })
+      const r = acc.update({ text: ' therefore', sn: 3, pgs: 'apd', rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(r).toBe('I think therefore')
+    })
+
+    it('should work without pgs field (batch mode)', () => {
+      const acc = createResultAccumulator()
+      const r1 = acc.update({ text: 'hello', sn: 0, pgs: undefined, rgBegin: 0, rgEnd: 0, isLast: false })
+      expect(r1).toBe('hello')
+      const r2 = acc.update({ text: ' world', sn: 1, pgs: undefined, rgBegin: 0, rgEnd: 0, isLast: true })
+      expect(r2).toBe('hello world')
     })
   })
 })
