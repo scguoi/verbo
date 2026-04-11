@@ -3,11 +3,55 @@ import { useStore } from 'zustand'
 import { recordingStore } from '../../stores/recording'
 import { appStore } from '../../stores/app'
 import { useConfigStore } from '../../config/store'
+import { createHistoryStore } from '../../stores/history'
+import { createSTTRegistry } from '../../adapters/stt/registry'
+import { createIFlytekAdapter } from '../../adapters/stt/iflytek'
+import { createLLMRegistry } from '../../adapters/llm/registry'
+import { createOpenAIAdapter } from '../../adapters/llm/openai'
+import { usePipeline } from '../../hooks/usePipeline'
 import { Pill } from './Pill'
 import { Bubble } from './Bubble'
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
+// ── Singleton registries & history store ──
+const historyStore = createHistoryStore()
+const sttRegistry = createSTTRegistry()
+const llmRegistry = createLLMRegistry()
+
+// Initialize adapters from config
+function initAdapters() {
+  const config = useConfigStore.getState().config
+
+  // Register STT adapters
+  const iflytekConfig = config.providers.stt['iflytek']
+  if (iflytekConfig) {
+    sttRegistry.register(
+      createIFlytekAdapter({
+        appId: (iflytekConfig as Record<string, string>).appId ?? '',
+        apiKey: (iflytekConfig as Record<string, string>).apiKey ?? '',
+        apiSecret: (iflytekConfig as Record<string, string>).apiSecret ?? '',
+      }),
+    )
+  }
+
+  // Register LLM adapters
+  const openaiConfig = config.providers.llm['openai']
+  if (openaiConfig) {
+    llmRegistry.register(
+      createOpenAIAdapter({
+        apiKey: openaiConfig.apiKey,
+        model: openaiConfig.model,
+        baseUrl: openaiConfig.baseUrl,
+      }),
+    )
+  }
+}
+
+// Init on load
+initAdapters()
+
+// ── Window helpers ──
 async function startWindowDrag() {
   if (!isTauri) return
   try {
@@ -25,7 +69,6 @@ async function resizeWindowToContent() {
     const { LogicalSize } = await import('@tauri-apps/api/dpi')
     const root = document.getElementById('root')
     if (!root) return
-    // Measure actual content size and resize window to fit
     const rect = root.getBoundingClientRect()
     const width = Math.max(Math.ceil(rect.width) + 16, 120)
     const height = Math.max(Math.ceil(rect.height) + 16, 40)
@@ -35,6 +78,7 @@ async function resizeWindowToContent() {
   }
 }
 
+// ── Component ──
 export function FloatingWindow() {
   const pipelineState = useStore(recordingStore, (s) => s.state)
   const lastResult = useStore(recordingStore, (s) => s.lastResult)
@@ -51,20 +95,24 @@ export function FloatingWindow() {
   const scene = getScene(currentSceneId)
   const sceneName = scene?.name ?? 'Unknown'
 
+  // Pipeline hook
+  const { startRecording, stopAndProcess } = usePipeline({
+    recordingStore,
+    historyStore,
+    getSTT: (name) => sttRegistry.get(name),
+    getLLM: (name) => llmRegistry.get(name),
+  })
+
   // Track elapsed time during recording
   useEffect(() => {
     if (pipelineState.status === 'recording') {
       const { startedAt } = pipelineState
       setElapsed(Date.now() - startedAt)
-
       elapsedTimerRef.current = setInterval(() => {
         setElapsed(Date.now() - startedAt)
       }, 200)
-
       return () => {
-        if (elapsedTimerRef.current) {
-          clearInterval(elapsedTimerRef.current)
-        }
+        if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current)
       }
     } else {
       setElapsed(0)
@@ -79,23 +127,37 @@ export function FloatingWindow() {
   useEffect(() => {
     if (pipelineState.status === 'done') {
       setShowLastResult(false)
-      collapseTimerRef.current = setTimeout(() => {
-        reset()
-      }, autoCollapseDelay)
-
+      collapseTimerRef.current = setTimeout(() => reset(), autoCollapseDelay)
       return () => {
-        if (collapseTimerRef.current) {
-          clearTimeout(collapseTimerRef.current)
-        }
+        if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
       }
     }
   }, [pipelineState.status, autoCollapseDelay, reset])
 
-  const handlePillClick = useCallback(() => {
-    if (pipelineState.status === 'idle' && lastResult) {
-      setShowLastResult((prev) => !prev)
+  // Pill click: idle → start recording, recording → stop and process
+  const handlePillClick = useCallback(async () => {
+    if (pipelineState.status === 'idle') {
+      if (lastResult && !scene) {
+        setShowLastResult((prev) => !prev)
+        return
+      }
+      try {
+        await startRecording()
+      } catch (err) {
+        recordingStore.getState().updateState({
+          status: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        })
+      }
+    } else if (pipelineState.status === 'recording') {
+      if (!scene) return
+      try {
+        await stopAndProcess(scene)
+      } catch {
+        // Error already handled in usePipeline
+      }
     }
-  }, [pipelineState.status, lastResult])
+  }, [pipelineState.status, lastResult, scene, startRecording, stopAndProcess])
 
   const handleCopy = useCallback(() => {
     const text =
@@ -103,9 +165,7 @@ export function FloatingWindow() {
         ? pipelineState.finalText
         : lastResult?.finalText ?? ''
     if (text) {
-      navigator.clipboard.writeText(text).catch(() => {
-        // clipboard write failed silently in floating window
-      })
+      navigator.clipboard.writeText(text).catch(() => {})
     }
   }, [pipelineState, lastResult])
 
@@ -118,20 +178,18 @@ export function FloatingWindow() {
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
-    // Don't drag when clicking buttons inside bubble
     if ((e.target as HTMLElement).closest('button[data-no-drag]')) return
+    if ((e.target as HTMLElement).closest('button.pill')) return // don't drag on pill click
     startWindowDrag()
   }, [])
 
   // Auto-resize window to match content size
-  const contentRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     resizeWindowToContent()
   }, [pipelineState.status, showLastResult])
 
   return (
     <div
-      ref={contentRef}
       className="floating-window"
       data-testid="floating-window"
       onMouseDown={handleDragStart}
@@ -140,7 +198,6 @@ export function FloatingWindow() {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '8px',
-        cursor: 'grab',
       }}
     >
       <Pill
