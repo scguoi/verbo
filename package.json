@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:rust": "cd src-tauri && cargo test",
     "test:all": "vitest run && cd src-tauri && cargo test",
+    "bench:stt": "node benchmarks/stt-latency.mjs",
+    "bench:stt:quick": "node benchmarks/stt-latency.mjs --quick",
     "prepare": "husky"
   },
   "dependencies": {
