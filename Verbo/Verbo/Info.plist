@@ -24,6 +24,13 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Verbo needs microphone access to transcribe your voice input.</string>
+    <key>NSInputMonitoringUsageDescription</key>
+    <string>Verbo needs input monitoring to detect the Fn key for voice recording.</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>NSMainStoryboardFile</key>
     <string></string>
     <key>NSPrincipalClass</key>

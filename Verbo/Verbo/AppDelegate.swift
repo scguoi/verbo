@@ -27,13 +27,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configManager.load()
         historyManager.load()
 
+        // Debug: log loaded config
+        let sttCfg = configManager.config.providers.stt["iflytek"]
+        let debugLine = "[Config] appId=\(sttCfg?.appId ?? "nil") apiKey=\(sttCfg?.apiKey.prefix(8) ?? "nil")... path=\(configManager.configFileURL.path)\n"
+        let debugDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
+        let debugPath = debugDir.appendingPathComponent("debug.log")
+        if let data = debugLine.data(using: .utf8), let fh = try? FileHandle(forWritingTo: debugPath) {
+            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
+        }
+
+        // 1.5 Apply UI language override (before any UI is created)
+        applyUILanguage(configManager.config.general.uiLanguage)
+
         // 2. Wire up floatingViewModel
         floatingViewModel.configManager = configManager
         floatingViewModel.historyManager = historyManager
 
         if let defaultScene = configManager.defaultScene() {
             floatingViewModel.currentSceneName = defaultScene.name
-            floatingViewModel.currentHotkeyHint = defaultScene.hotkey.toggleRecord ?? ""
+            floatingViewModel.currentHotkeyHint = HotkeyManager.displayString(for: defaultScene.hotkey.toggleRecord ?? "")
         }
 
         // 3. Setup floating panel
@@ -58,19 +70,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panelView = FloatingPanelView(viewModel: floatingViewModel)
         let hosting = NSHostingView(rootView: panelView)
 
+        // Make hosting view fully transparent — only SwiftUI-drawn shapes are visible
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = .clear
+
         let panel = FloatingPanel(contentView: hosting)
         panel.positionNearBottomRight()
         panel.makeKeyAndOrderFront(nil)
         self.floatingPanel = panel
-
-        NotificationCenter.default.addObserver(
-            forName: .floatingPanelSizeChanged,
-            object: nil,
-            queue: .main
-        ) { [weak panel] notification in
-            guard let size = notification.userInfo?["size"] as? CGSize else { return }
-            panel?.updateSize(to: size)
-        }
     }
 
     // MARK: - Status Item Setup
@@ -206,8 +213,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         configManager.update(newConfig)
         floatingViewModel.currentSceneName = name
-        floatingViewModel.currentHotkeyHint = hotkeyHint
+        floatingViewModel.currentHotkeyHint = HotkeyManager.displayString(for: hotkeyHint)
         statusItem?.menu = buildStatusMenu()
+    }
+
+    // MARK: - Language
+
+    private func applyUILanguage(_ language: UILanguage) {
+        switch language {
+        case .system:
+            // Remove app-level override, follow system
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        case .zh:
+            UserDefaults.standard.set(["zh-Hans"], forKey: "AppleLanguages")
+        case .en:
+            UserDefaults.standard.set(["en"], forKey: "AppleLanguages")
+        }
     }
 
     // MARK: - Actions

@@ -12,11 +12,8 @@ final class HistoryManager {
         if let directory {
             baseDir = directory
         } else {
-            let appSupport = FileManager.default.urls(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask
-            ).first ?? FileManager.default.temporaryDirectory
-            baseDir = appSupport.appendingPathComponent("Verbo", isDirectory: true)
+            baseDir = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".verbo", isDirectory: true)
         }
         fileURL = baseDir.appendingPathComponent("history.json")
     }

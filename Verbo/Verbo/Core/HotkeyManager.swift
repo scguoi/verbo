@@ -2,6 +2,10 @@ import AppKit
 import Carbon.HIToolbox
 import Observation
 
+extension Notification.Name {
+    static let fnKeyEvent = Notification.Name("com.verbo.fnKeyEvent")
+}
+
 // MARK: - HotkeyManager
 
 @Observable
@@ -10,10 +14,15 @@ final class HotkeyManager {
 
     // MARK: - HotkeyBinding
 
+    enum HotkeyType {
+        case normal(keyCode: UInt16, modifiers: NSEvent.ModifierFlags)
+        case fnKey
+        case modifierOnly(keyCode: UInt16)  // e.g. right Command alone
+    }
+
     struct HotkeyBinding {
         let id: String
-        let keyCode: UInt16
-        let modifiers: NSEvent.ModifierFlags
+        let type: HotkeyType
         let onPress: @MainActor () -> Void
         let onRelease: (@MainActor () -> Void)?
     }
@@ -22,9 +31,23 @@ final class HotkeyManager {
 
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    nonisolated(unsafe) private var cgEventTap: CFMachPort?
+    nonisolated(unsafe) private var cgRunLoopSource: CFRunLoopSource?
     private var bindings: [HotkeyBinding] = []
+    private var fnPressed = false
 
     // MARK: - Registration
+
+    // Right Command keyCode = 54, Left Command = 55
+    private static let modifierOnlyKeys: [String: UInt16] = [
+        "rightcommand": 54, "rightcmd": 54,
+        "leftcommand": 55, "leftcmd": 55,
+        "rightoption": 61, "rightalt": 61,
+        "leftoption": 58, "leftalt": 58,
+        "rightshift": 60, "leftshift": 56,
+        "rightcontrol": 62, "rightctrl": 62,
+        "leftcontrol": 59, "leftctrl": 59,
+    ]
 
     func register(
         id: String,
@@ -32,14 +55,19 @@ final class HotkeyManager {
         onPress: @escaping @MainActor () -> Void,
         onRelease: (@MainActor () -> Void)? = nil
     ) {
-        guard let parsed = HotkeyManager.parseShortcut(shortcut) else { return }
-        let binding = HotkeyBinding(
-            id: id,
-            keyCode: parsed.keyCode,
-            modifiers: parsed.modifiers,
-            onPress: onPress,
-            onRelease: onRelease
-        )
+        let lower = shortcut.lowercased().replacingOccurrences(of: " ", with: "")
+        let hotkeyType: HotkeyType
+
+        if lower == "fn" {
+            hotkeyType = .fnKey
+        } else if let keyCode = Self.modifierOnlyKeys[lower] {
+            hotkeyType = .modifierOnly(keyCode: keyCode)
+        } else {
+            guard let parsed = HotkeyManager.parseShortcut(shortcut) else { return }
+            hotkeyType = .normal(keyCode: parsed.keyCode, modifiers: parsed.modifiers)
+        }
+
+        let binding = HotkeyBinding(id: id, type: hotkeyType, onPress: onPress, onRelease: onRelease)
         bindings = bindings.filter { $0.id != id } + [binding]
     }
 
@@ -64,6 +92,9 @@ final class HotkeyManager {
             }
             return event
         }
+
+        // CGEvent tap to capture Fn/Globe key (NSEvent monitors can't see it)
+        startCGEventTap()
     }
 
     func stopListening() {
@@ -75,7 +106,129 @@ final class HotkeyManager {
             NSEvent.removeMonitor(monitor)
             localMonitor = nil
         }
+        stopCGEventTap()
     }
+
+    // MARK: - CGEvent Tap for Fn Key
+
+    nonisolated private func startCGEventTap() {
+        // Check accessibility permission first
+        let trusted = AXIsProcessTrusted()
+        debugLog("[CGEventTap] AXIsProcessTrusted = \(trusted)")
+
+        let callback: CGEventTapCallBack = { _, _, event, _ in
+            let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+            let flags = event.flags
+
+            // Post modifier key events for Fn and modifier-only hotkeys
+            NotificationCenter.default.post(
+                name: .fnKeyEvent,
+                object: nil,
+                userInfo: ["keyCode": Int(keyCode), "flags": flags.rawValue]
+            )
+
+            return Unmanaged.passRetained(event)
+        }
+
+        guard let tap = CGEvent.tapCreate(
+            tap: .cghidEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: CGEventMask(1 << CGEventType.flagsChanged.rawValue),
+            callback: callback,
+            userInfo: nil
+        ) else {
+            debugLog("[CGEventTap] FAILED to create tap! Input Monitoring permission missing?")
+            return
+        }
+
+        debugLog("[CGEventTap] Tap created successfully")
+        cgEventTap = tap
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        cgRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+
+        // Listen for modifier key notifications from CGEvent tap
+        NotificationCenter.default.addObserver(
+            forName: .fnKeyEvent,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let keyCode = notification.userInfo?["keyCode"] as? Int,
+                  let flagsRaw = notification.userInfo?["flags"] as? UInt64 else { return }
+            Task { @MainActor in
+                self?.handleModifierEvent(keyCode: UInt16(keyCode), flagsRaw: flagsRaw)
+            }
+        }
+    }
+
+    private nonisolated func debugLog(_ msg: String) {
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
+        let path = dir.appendingPathComponent("debug.log")
+        let line = "\(msg)\n"
+        if let data = line.data(using: .utf8), let fh = try? FileHandle(forWritingTo: path) {
+            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
+        }
+    }
+
+    private func stopCGEventTap() {
+        if let tap = cgEventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            cgEventTap = nil
+        }
+        if let source = cgRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+            cgRunLoopSource = nil
+        }
+    }
+
+    /// Track which modifier keys are currently pressed (by keyCode)
+    private var pressedModifiers: Set<UInt16> = []
+
+    private func handleModifierEvent(keyCode: UInt16, flagsRaw: UInt64) {
+        // Determine if this modifier key is being pressed or released.
+        // For modifier keys, we detect press/release by checking if the
+        // corresponding flag is set in the event flags.
+        let modifierFlagForKeyCode: UInt64? = switch keyCode {
+        case 54, 55: 0x100010 // Command (either side)
+        case 58, 61: 0x80020  // Option (either side)
+        case 56, 60: 0x20002  // Shift (either side)
+        case 59, 62: 0x40001  // Control (either side)
+        case 63:     0x800000 // Fn
+        default: nil
+        }
+
+        guard let flag = modifierFlagForKeyCode else { return }
+        let isDown = (flagsRaw & flag) != 0
+
+        for binding in bindings {
+            switch binding.type {
+            case .fnKey where keyCode == 63:
+                if isDown && !pressedModifiers.contains(keyCode) {
+                    binding.onPress()
+                } else if !isDown && pressedModifiers.contains(keyCode) {
+                    binding.onRelease?()
+                }
+            case .modifierOnly(let bKeyCode) where bKeyCode == keyCode:
+                if isDown && !pressedModifiers.contains(keyCode) {
+                    binding.onPress()
+                } else if !isDown && pressedModifiers.contains(keyCode) {
+                    binding.onRelease?()
+                }
+            default:
+                break
+            }
+        }
+
+        if isDown {
+            pressedModifiers.insert(keyCode)
+        } else {
+            pressedModifiers.remove(keyCode)
+        }
+    }
+
+    // MARK: - Fn Key Handling
 
     // MARK: - Event Handling
 
@@ -84,8 +237,8 @@ final class HotkeyManager {
         let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
 
         for binding in bindings {
-            guard binding.keyCode == keyCode,
-                  binding.modifiers == modifiers else { continue }
+            guard case .normal(let bKeyCode, let bModifiers) = binding.type,
+                  bKeyCode == keyCode, bModifiers == modifiers else { continue }
 
             if event.type == .keyDown, !event.isARepeat {
                 binding.onPress()
@@ -93,6 +246,35 @@ final class HotkeyManager {
                 binding.onRelease?()
             }
         }
+    }
+
+    // MARK: - Display Formatting
+
+    static func displayString(for shortcut: String) -> String {
+        let parts = shortcut.split(separator: "+").map { String($0).trimmingCharacters(in: .whitespaces) }
+        return parts.map { part in
+            switch part.lowercased().replacingOccurrences(of: " ", with: "") {
+            case "rightcommand", "rightcmd": return "R⌘"
+            case "leftcommand", "leftcmd": return "L⌘"
+            case "command", "cmd", "commandorcontrol": return "⌘"
+            case "rightoption", "rightalt": return "R⌥"
+            case "leftoption", "leftalt": return "L⌥"
+            case "option", "alt": return "⌥"
+            case "rightshift": return "R⇧"
+            case "leftshift": return "L⇧"
+            case "shift": return "⇧"
+            case "rightcontrol", "rightctrl": return "R⌃"
+            case "leftcontrol", "leftctrl": return "L⌃"
+            case "control", "ctrl": return "⌃"
+            case "fn": return "fn"
+            case "space": return "␣"
+            case "return", "enter": return "↩"
+            case "escape", "esc": return "⎋"
+            case "tab": return "⇥"
+            case "delete", "backspace": return "⌫"
+            default: return part.uppercased()
+            }
+        }.joined()
     }
 
     // MARK: - Shortcut Parsing

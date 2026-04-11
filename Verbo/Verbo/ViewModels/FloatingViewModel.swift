@@ -11,10 +11,21 @@ final class FloatingViewModel {
     var currentSceneName: String = "Verbo"
     var currentHotkeyHint: String = "Alt+D"
     var recordingDuration: TimeInterval = 0
-    var audioLevels: [Float] = Array(repeating: 0, count: 5)
+    var audioLevels: [Float] = Array(repeating: 0, count: 20)
     var isExpanded: Bool = false
     var lastResult: String?
     var lastSource: String?
+    var toastHovered: Bool = false {
+        didSet {
+            if toastHovered {
+                // Mouse entered toast — cancel auto-collapse
+                collapseTask?.cancel()
+            } else if pipelineState.isDone {
+                // Mouse left toast — restart collapse timer
+                scheduleCollapse()
+            }
+        }
+    }
 
     // MARK: - Dependencies (set externally)
 
@@ -34,6 +45,10 @@ final class FloatingViewModel {
 
     var isIdle: Bool { pipelineState.isIdle }
     var isRecording: Bool { pipelineState.isRecording }
+    var isTranscribing: Bool {
+        if case .transcribing = pipelineState { return true }
+        return false
+    }
 
     var pillDotColor: Color {
         switch pipelineState {
@@ -47,8 +62,14 @@ final class FloatingViewModel {
 
     var shouldShowBubble: Bool {
         switch pipelineState {
-        case .idle, .recording: isExpanded && lastResult != nil
-        case .transcribing, .processing, .done, .error: true
+        case .idle, .recording:
+            return isExpanded && lastResult != nil
+        case .transcribing(let partial):
+            return !partial.isEmpty
+        case .processing(_, let partial):
+            return !partial.isEmpty
+        case .done, .error:
+            return true
         }
     }
 
@@ -60,12 +81,19 @@ final class FloatingViewModel {
 
     // MARK: - Actions
 
+    var isActive: Bool { isRecording || isTranscribing }
+
     func toggleRecording() {
-        if isRecording { stopRecording() } else { startRecording() }
+        if isActive { stopRecording() } else { startRecording() }
     }
 
     func startRecording() {
-        guard isIdle || pipelineState.isDone else { return }
+        guard isIdle || pipelineState.isDone || pipelineState.isError else { return }
+
+        // Cancel any lingering previous pipeline
+        pipelineTask?.cancel()
+        pipelineTask = nil
+
         collapseTask?.cancel()
         isExpanded = false
         lastResult = nil
@@ -84,7 +112,7 @@ final class FloatingViewModel {
     }
 
     func stopRecording() {
-        guard isRecording else { return }
+        guard isRecording || isTranscribing else { return }
         recordingTimer?.invalidate()
         recordingTimer = nil
         Task { _ = await audioRecorder.stop() }
@@ -93,12 +121,21 @@ final class FloatingViewModel {
     func pillTapped() {
         switch pipelineState {
         case .idle:
-            if lastResult != nil { isExpanded.toggle() } else { startRecording() }
-        case .recording:
+            if isExpanded {
+                isExpanded = false
+            } else {
+                startRecording()
+            }
+        case .recording, .transcribing:
+            // Stop recording and send audio for processing
             stopRecording()
         case .done:
             collapseTask?.cancel()
-            isExpanded.toggle()
+            isExpanded = false
+            pipelineState = .idle
+        case .error:
+            isExpanded = false
+            pipelineState = .idle
         default:
             break
         }
@@ -147,6 +184,10 @@ final class FloatingViewModel {
         let pipelineSteps = scene.pipeline.map { "\($0.type.rawValue):\($0.provider)" }
 
         pipelineTask = Task {
+            defer {
+                // ALWAYS stop the recorder when pipeline ends (success or error)
+                Task { _ = await audioRecorder.stop() }
+            }
             do {
                 for try await state in await pipelineEngine.execute(
                     steps: steps,
@@ -186,7 +227,12 @@ final class FloatingViewModel {
         guard delay > 0 else { return }
         collapseTask = Task {
             try? await Task.sleep(for: .seconds(delay))
-            if !Task.isCancelled {
+            if !Task.isCancelled && !toastHovered {
+                // Copy to clipboard on dismiss if configured
+                if configManager?.config.general.copyOnDismiss == true,
+                   let result = lastResult {
+                    textOutputService.writeToClipboard(result)
+                }
                 pipelineState = .idle
                 isExpanded = false
             }

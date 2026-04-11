@@ -89,6 +89,7 @@ public struct ProvidersConfig: Codable, Equatable, Sendable {
 public struct GeneralConfig: Codable, Equatable, Sendable {
     public var outputMode: OutputMode
     public var autoCollapseDelay: Double
+    public var copyOnDismiss: Bool
     public var launchAtStartup: Bool
     public var uiLanguage: UILanguage
     public var historyRetentionDays: Int?
@@ -96,15 +97,27 @@ public struct GeneralConfig: Codable, Equatable, Sendable {
     public init(
         outputMode: OutputMode = .simulate,
         autoCollapseDelay: Double = 1.5,
+        copyOnDismiss: Bool = true,
         launchAtStartup: Bool = false,
         uiLanguage: UILanguage = .system,
         historyRetentionDays: Int? = 90
     ) {
         self.outputMode = outputMode
         self.autoCollapseDelay = autoCollapseDelay
+        self.copyOnDismiss = copyOnDismiss
         self.launchAtStartup = launchAtStartup
         self.uiLanguage = uiLanguage
         self.historyRetentionDays = historyRetentionDays
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        outputMode = try container.decodeIfPresent(OutputMode.self, forKey: .outputMode) ?? .simulate
+        autoCollapseDelay = try container.decodeIfPresent(Double.self, forKey: .autoCollapseDelay) ?? 1.5
+        copyOnDismiss = try container.decodeIfPresent(Bool.self, forKey: .copyOnDismiss) ?? true
+        launchAtStartup = try container.decodeIfPresent(Bool.self, forKey: .launchAtStartup) ?? false
+        uiLanguage = try container.decodeIfPresent(UILanguage.self, forKey: .uiLanguage) ?? .system
+        historyRetentionDays = try container.decodeIfPresent(Int.self, forKey: .historyRetentionDays) ?? 90
     }
 }
 

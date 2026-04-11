@@ -19,8 +19,7 @@ struct PillView: View {
                 statusDot
                 content
             }
-            .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, DesignTokens.Spacing.xs + 2)
+            .frame(width: 150, height: DesignTokens.Pill.height)
             .background(
                 RoundedRectangle(cornerRadius: DesignTokens.Radius.pill)
                     .fill(DesignTokens.Colors.ivory)
@@ -31,7 +30,6 @@ struct PillView: View {
             )
         }
         .buttonStyle(.plain)
-        .fixedSize()
         .onReceive(dotsTimer) { _ in
             if case .processing = state {
                 dotsPhase = (dotsPhase + 1) % 4
@@ -75,30 +73,23 @@ struct PillView: View {
                 Text(sceneName)
                     .font(DesignTokens.Typography.pillText)
                     .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                    .lineLimit(1)
                 Text(hotkeyHint)
                     .font(DesignTokens.Typography.pillHotkey)
                     .foregroundStyle(DesignTokens.Colors.stoneGray)
             }
 
         case .recording:
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                WaveformView(levels: audioLevels, isActive: true)
-                Text(timerText)
-                    .font(DesignTokens.Typography.pillTimer)
-                    .foregroundStyle(DesignTokens.Colors.charcoalWarm)
-                    .monospacedDigit()
-            }
+            WaveformView(levels: audioLevels)
 
         case .transcribing:
-            Text(String(localized: "pill.recognizing"))
-                .font(DesignTokens.Typography.pillText)
-                .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+            WaveformView(levels: audioLevels, color: DesignTokens.Colors.coral)
 
         case .processing:
             HStack(spacing: 2) {
                 Text(String(localized: "pill.processing"))
                     .font(DesignTokens.Typography.pillText)
-                    .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                    .foregroundStyle(DesignTokens.Colors.coral)
                 bouncingDots
             }
 
@@ -120,7 +111,7 @@ struct PillView: View {
         HStack(spacing: 2) {
             ForEach(0..<3, id: \.self) { i in
                 Circle()
-                    .fill(DesignTokens.Colors.charcoalWarm)
+                    .fill(DesignTokens.Colors.coral)
                     .frame(width: 3, height: 3)
                     .offset(y: dotsPhase == i ? -3 : 0)
                     .animation(

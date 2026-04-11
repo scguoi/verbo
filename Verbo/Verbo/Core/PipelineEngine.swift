@@ -72,8 +72,17 @@ actor PipelineEngine {
 
                     continuation.yield(.done(result: currentInput, source: sttSource))
                     continuation.finish()
+                } catch is CancellationError {
+                    // Task was cancelled (e.g. user stopped recording), not a real error
+                    continuation.finish()
                 } catch {
-                    continuation.yield(.error(message: error.localizedDescription))
+                    let message: String
+                    if let urlError = error as? URLError {
+                        message = "Network error: \(urlError.localizedDescription) (code: \(urlError.code.rawValue))"
+                    } else {
+                        message = error.localizedDescription
+                    }
+                    continuation.yield(.error(message: message))
                     continuation.finish(throwing: error)
                 }
             }

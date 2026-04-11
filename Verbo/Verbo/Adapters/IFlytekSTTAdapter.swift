@@ -1,5 +1,17 @@
 import Foundation
 import CryptoKit
+import os.log
+
+private func ilog(_ msg: String) {
+    let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
+    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let path = dir.appendingPathComponent("debug.log")
+    let line = "[\(ISO8601DateFormatter().string(from: Date()))] [iFlytek] \(msg)\n"
+    if let data = line.data(using: .utf8) {
+        if let fh = try? FileHandle(forWritingTo: path) { fh.seekToEndOfFile(); fh.write(data); fh.closeFile() }
+        else { try? data.write(to: path) }
+    }
+}
 
 // MARK: - Response Types
 
@@ -34,10 +46,21 @@ struct IFlytekChar: Codable, Sendable {
 
 // MARK: - Error Types
 
-enum IFlytekError: Error, Sendable {
+enum IFlytekError: LocalizedError, Sendable {
     case apiError(code: Int, message: String)
     case invalidConfiguration
     case connectionFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .apiError(let code, let message):
+            return "iFlytek error \(code): \(message)"
+        case .invalidConfiguration:
+            return "iFlytek: invalid API configuration"
+        case .connectionFailed:
+            return "iFlytek: WebSocket connection failed"
+        }
+    }
 }
 
 // MARK: - Result Accumulator
@@ -121,18 +144,13 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
         let authorizationOrigin = "api_key=\"\(apiKey)\", algorithm=\"hmac-sha256\", headers=\"host date request-line\", signature=\"\(signatureBase64)\""
         let authorizationBase64 = authorizationOrigin.data(using: .utf8)?.base64EncodedString() ?? ""
 
-        // Build URL with query params
-        var components = URLComponents()
-        components.scheme = "wss"
-        components.host = host
-        components.path = path
-        components.queryItems = [
-            URLQueryItem(name: "authorization", value: authorizationBase64),
-            URLQueryItem(name: "date", value: dateString),
-            URLQueryItem(name: "host", value: host),
-        ]
-
-        return components.url
+        // Build URL with manually percent-encoded query params.
+        // URLComponents.queryItems would double-encode base64 chars (+, /, =),
+        // causing iFlytek auth to fail intermittently.
+        let dateEncoded = dateString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? dateString
+        let authEncoded = authorizationBase64.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? authorizationBase64
+        let urlString = "wss://\(host)\(path)?authorization=\(authEncoded)&date=\(dateEncoded)&host=\(host)"
+        return URL(string: urlString)
     }
 
     // MARK: - Language Mapping
@@ -158,42 +176,55 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                     apiKey: self.apiKey,
                     apiSecret: self.apiSecret
                 ) else {
+                    ilog(" ERROR: Failed to build auth URL")
                     continuation.finish(throwing: IFlytekError.invalidConfiguration)
                     return
                 }
 
+                ilog(" Connecting to: \(url.absoluteString.prefix(120))...")
                 let webSocketTask = self.session.webSocketTask(with: url)
                 webSocketTask.resume()
 
                 var accumulator = IFlytekResultAccumulator()
                 var isFirst = true
                 var previousText = ""
+                var frameIndex = 0
 
                 // Task to receive WebSocket messages
                 let receiveTask = Task {
                     while !Task.isCancelled {
                         do {
                             let message = try await webSocketTask.receive()
+                            let responseData: Data
                             switch message {
                             case .string(let text):
                                 guard let data = text.data(using: .utf8) else { continue }
-                                try processResponseData(
-                                    data,
-                                    accumulator: &accumulator,
-                                    previousText: &previousText,
-                                    continuation: continuation
-                                )
+                                responseData = data
                             case .data(let data):
-                                try processResponseData(
-                                    data,
-                                    accumulator: &accumulator,
-                                    previousText: &previousText,
-                                    continuation: continuation
-                                )
+                                responseData = data
                             @unknown default:
-                                break
+                                continue
                             }
+
+                            let isComplete = try processResponseData(
+                                responseData,
+                                accumulator: &accumulator,
+                                previousText: &previousText,
+                                continuation: continuation
+                            )
+                            if isComplete { return }
+
+                        } catch is CancellationError {
+                            ilog(" Receive cancelled (normal)")
+                            continuation.finish()
+                            return
+                        } catch let error as URLError where error.code == .cancelled {
+                            ilog(" WebSocket cancelled (normal)")
+                            continuation.finish()
+                            return
                         } catch {
+                            ilog(" Receive error: \(error)")
+                            ilog(" Error type: \(type(of: error))")
                             continuation.finish(throwing: error)
                             return
                         }
@@ -237,8 +268,17 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
 
                     if let jsonData = try? JSONSerialization.data(withJSONObject: frame),
                        let jsonString = String(data: jsonData, encoding: .utf8) {
-                        try? await webSocketTask.send(.string(jsonString))
+                        do {
+                            try await webSocketTask.send(.string(jsonString))
+                            if frameIndex == 0 {
+                                ilog(" First frame sent OK (audio size: \(audioChunk.count) bytes)")
+                            }
+                        } catch {
+                            ilog(" Send error at frame \(frameIndex): \(error)")
+                            break
+                        }
                     }
+                    frameIndex += 1
                 }
 
                 // Send last frame (status=2, empty audio)
@@ -262,12 +302,13 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
         }
     }
 
+    /// Returns true if recognition is complete (status == 2)
     private func processResponseData(
         _ data: Data,
         accumulator: inout IFlytekResultAccumulator,
         previousText: inout String,
         continuation: AsyncThrowingStream<String, Error>.Continuation
-    ) throws {
+    ) throws -> Bool {
         let frame = try JSONDecoder().decode(IFlytekResponseFrame.self, from: data)
 
         guard frame.code == 0 else {
@@ -277,27 +318,28 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
             )
         }
 
-        guard let result = frame.data?.result else { return }
-
-        // Extract text from word segments
-        let words = result.ws ?? []
-        let text = words.flatMap { $0.cw ?? [] }.map(\.w).joined()
-
-        if let sn = result.sn {
-            accumulator.process(sn: sn, pgs: result.pgs, rg: result.rg, text: text)
-        }
-
-        let currentText = accumulator.currentText
-        if currentText != previousText {
-            continuation.yield(currentText)
-            previousText = currentText
-        }
-
-        // status == 2 means end of recognition
         let dataStatus = frame.data?.status ?? 0
+
+        if let result = frame.data?.result {
+            let words = result.ws ?? []
+            let text = words.flatMap { $0.cw ?? [] }.map(\.w).joined()
+
+            if let sn = result.sn {
+                accumulator.process(sn: sn, pgs: result.pgs, rg: result.rg, text: text)
+            }
+
+            let currentText = accumulator.currentText
+            if currentText != previousText {
+                continuation.yield(currentText)
+                previousText = currentText
+            }
+        }
+
         if dataStatus == 2 {
             continuation.finish()
+            return true
         }
+        return false
     }
 
     func transcribe(audio: Data, lang: String) async throws -> String {

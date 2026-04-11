@@ -25,7 +25,8 @@ actor AudioRecorder {
 
     // MARK: - Public Properties
 
-    var audioLevels: [Float] = Array(repeating: 0, count: 5)
+    static let levelCount = 20
+    var audioLevels: [Float] = Array(repeating: 0, count: AudioRecorder.levelCount)
 
     // MARK: - Start Recording
 
@@ -37,6 +38,13 @@ actor AudioRecorder {
         }
 
         let inputNode = engine.inputNode
+
+        // Remove any existing tap to prevent crash on re-install
+        inputNode.removeTap(onBus: 0)
+        if engine.isRunning {
+            engine.stop()
+        }
+
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
         let targetFormat = Self.targetFormat
@@ -127,16 +135,16 @@ actor AudioRecorder {
             Array(buffer.bindMemory(to: Int16.self))
         }
 
-        let segmentSize = max(1, sampleCount / 5)
-        var levels = [Float](repeating: 0, count: 5)
+        let segmentSize = max(1, sampleCount / Self.levelCount)
+        var levels = [Float](repeating: 0, count: Self.levelCount)
 
-        for i in 0..<5 {
+        for i in 0..<Self.levelCount {
             let start = i * segmentSize
             let end = min(start + segmentSize, sampleCount)
             guard start < end else { continue }
 
             let segment = samples[start..<end]
-            let avgAmplitude = segment.map { Float(abs($0)) }.reduce(0, +) / Float(segment.count)
+            let avgAmplitude = segment.map { Float(Int32($0).magnitude) }.reduce(0, +) / Float(segment.count)
             levels[i] = avgAmplitude / Float(Int16.max)
         }
 

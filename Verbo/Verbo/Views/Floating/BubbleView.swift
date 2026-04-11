@@ -8,91 +8,71 @@ struct BubbleView: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             bubbleContent
         }
-        .padding(DesignTokens.Spacing.md)
-        .frame(minWidth: 200, maxWidth: 320, alignment: .leading)
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .frame(width: 260, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: DesignTokens.Radius.bubble)
+            RoundedRectangle(cornerRadius: DesignTokens.Radius.large)
                 .fill(DesignTokens.Colors.ivory)
+                .shadow(color: DesignTokens.Shadows.whisper, radius: 8, x: 0, y: 2)
                 .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.Radius.bubble)
-                        .stroke(DesignTokens.Colors.borderCream, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: DesignTokens.Radius.large)
+                        .stroke(DesignTokens.Colors.borderCream, lineWidth: 0.5)
                 )
         )
     }
 
-    // MARK: - Bubble Content
-
     @ViewBuilder
     private var bubbleContent: some View {
         switch state {
-        case .idle:
-            if let result = lastResult {
-                resultContent(result)
-            }
-
-        case .recording:
-            if let result = lastResult {
-                resultContent(result)
-            }
-
         case .transcribing(let partial):
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(String(localized: "bubble.recognizing"))
-                    .font(DesignTokens.Typography.bubbleStatus)
-                    .foregroundStyle(DesignTokens.Colors.stoneGray)
-                if !partial.isEmpty {
-                    Text(partial)
-                        .font(DesignTokens.Typography.bubbleText)
-                        .foregroundStyle(DesignTokens.Colors.charcoalWarm)
-                }
+            if !partial.isEmpty {
+                Text(partial)
+                    .font(DesignTokens.Typography.bubbleText)
+                    .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
         case .processing(let source, let partial):
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(source)
-                    .font(DesignTokens.Typography.bubbleText)
+                    .font(DesignTokens.Typography.settingsCaption)
                     .foregroundStyle(DesignTokens.Colors.stoneGray)
-                    .strikethrough(true, color: DesignTokens.Colors.stoneGray)
+                    .strikethrough()
+                    .fixedSize(horizontal: false, vertical: true)
                 if !partial.isEmpty {
                     Text(partial)
                         .font(DesignTokens.Typography.bubbleText)
                         .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
         case .done(let result, _):
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
                 Text(result)
                     .font(DesignTokens.Typography.bubbleText)
                     .foregroundStyle(DesignTokens.Colors.charcoalWarm)
                     .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text(String(localized: "bubble.inserted"))
-                        .font(DesignTokens.Typography.bubbleStatus)
-                        .foregroundStyle(Color.green)
-
-                    Spacer()
-
-                    Button(action: onCopy) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 12))
-                            .foregroundStyle(DesignTokens.Colors.stoneGray)
-                    }
-                    .buttonStyle(.plain)
-                    .help(String(localized: "bubble.copy"))
+                Button(action: onCopy) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundStyle(DesignTokens.Colors.stoneGray)
                 }
+                .buttonStyle(.plain)
             }
 
         case .error(let message):
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(message)
-                    .font(DesignTokens.Typography.bubbleText)
+                    .font(DesignTokens.Typography.settingsCaption)
                     .foregroundStyle(DesignTokens.Colors.errorCrimson)
-
+                    .fixedSize(horizontal: false, vertical: true)
                 Button(action: onRetry) {
                     Text(String(localized: "bubble.retry"))
                         .font(DesignTokens.Typography.bubbleStatus)
@@ -100,27 +80,13 @@ struct BubbleView: View {
                 }
                 .buttonStyle(.plain)
             }
-        }
-    }
 
-    // MARK: - Result Content
-
-    private func resultContent(_ result: String) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(result)
-                .font(DesignTokens.Typography.bubbleText)
-                .foregroundStyle(DesignTokens.Colors.charcoalWarm)
-                .textSelection(.enabled)
-
-            HStack {
-                Spacer()
-                Button(action: onCopy) {
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 12))
-                        .foregroundStyle(DesignTokens.Colors.stoneGray)
-                }
-                .buttonStyle(.plain)
-                .help(String(localized: "bubble.copy"))
+        default:
+            if let result = lastResult {
+                Text(result)
+                    .font(DesignTokens.Typography.bubbleText)
+                    .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
