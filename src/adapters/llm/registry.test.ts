@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createLLMRegistry } from '../../src/adapters/llm/registry'
-import type { LLMAdapter } from '../../src/adapters/llm/types'
+import { createLLMRegistry } from './registry'
+import type { LLMAdapter } from './types'
 
 function makeMockAdapter(name: string): LLMAdapter {
   return {

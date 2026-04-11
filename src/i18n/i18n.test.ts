@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import i18n from 'i18next'
-import { zhCN } from '../../src/i18n/zh-CN'
-import { en } from '../../src/i18n/en'
-import { initI18n } from '../../src/i18n'
+import { zhCN } from './zh-CN'
+import { en } from './en'
+import { initI18n } from '.'
 
 // ── helpers ──────────────────────────────────────────────────────────
 

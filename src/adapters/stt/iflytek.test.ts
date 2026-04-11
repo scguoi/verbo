@@ -5,8 +5,8 @@ import {
   mapLanguage,
   parseIFlytekResponse,
   createResultAccumulator,
-} from '../../src/adapters/stt/iflytek'
-import type { STTAdapter, STTOptions } from '../../src/adapters/stt/types'
+} from './iflytek'
+import type { STTAdapter, STTOptions } from './types'
 
 const testConfig = {
   appId: 'test-app-id',

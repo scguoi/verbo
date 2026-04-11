@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { Waveform } from '../../src/windows/floating/Waveform'
-import { Pill } from '../../src/windows/floating/Pill'
-import { Bubble } from '../../src/windows/floating/Bubble'
-import type { PipelineState } from '../../src/types/pipeline'
+import { Waveform } from './Waveform'
+import { Pill } from './Pill'
+import { Bubble } from './Bubble'
+import type { PipelineState } from '../../types/pipeline'
 
 // Mock @tauri-apps/api modules
 vi.mock('@tauri-apps/api', () => ({}))

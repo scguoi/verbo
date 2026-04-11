@@ -3,11 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { en } from '../../src/i18n/en'
-import { useConfigStore } from '../../src/config/store'
-import { DEFAULT_CONFIG } from '../../src/config/defaults'
-import { createHistoryStore } from '../../src/stores/history'
-import type { HistoryRecord } from '../../src/types/history'
+import { en } from '../../i18n/en'
+import { useConfigStore } from '../../config/store'
+import { DEFAULT_CONFIG } from '../../config/defaults'
+import { createHistoryStore } from '../../stores/history'
+import type { HistoryRecord } from '../../types/history'
 
 // Mock Tauri APIs
 vi.mock('@tauri-apps/api', () => ({}))
@@ -51,7 +51,7 @@ const makeRecord = (overrides: Partial<HistoryRecord> = {}): HistoryRecord => ({
 describe('HistoryItem', () => {
   it('renders time, scene name, and text', async () => {
     const { HistoryItem } = await import(
-      '../../src/windows/history/HistoryItem'
+      './HistoryItem'
     )
     const record = makeRecord()
     renderWithI18n(<HistoryItem record={record} onCopy={vi.fn()} />)
@@ -67,7 +67,7 @@ describe('HistoryItem', () => {
 
   it('shows status badge with correct color for inserted', async () => {
     const { HistoryItem } = await import(
-      '../../src/windows/history/HistoryItem'
+      './HistoryItem'
     )
     const record = makeRecord({ outputStatus: 'inserted' })
     renderWithI18n(<HistoryItem record={record} onCopy={vi.fn()} />)
@@ -79,7 +79,7 @@ describe('HistoryItem', () => {
 
   it('shows status badge for failed', async () => {
     const { HistoryItem } = await import(
-      '../../src/windows/history/HistoryItem'
+      './HistoryItem'
     )
     const record = makeRecord({ outputStatus: 'failed' })
     renderWithI18n(<HistoryItem record={record} onCopy={vi.fn()} />)
@@ -91,7 +91,7 @@ describe('HistoryItem', () => {
 
   it('copy button calls onCopy with finalText', async () => {
     const { HistoryItem } = await import(
-      '../../src/windows/history/HistoryItem'
+      './HistoryItem'
     )
     const onCopy = vi.fn()
     const record = makeRecord({ finalText: 'copied text' })
@@ -106,7 +106,7 @@ describe('HistoryItem', () => {
 
   it('"View original" link toggles text when originalText differs', async () => {
     const { HistoryItem } = await import(
-      '../../src/windows/history/HistoryItem'
+      './HistoryItem'
     )
     const record = makeRecord({
       originalText: 'raw input',
@@ -128,7 +128,7 @@ describe('HistoryItem', () => {
 
   it('does not show "View original" when texts are the same', async () => {
     const { HistoryItem } = await import(
-      '../../src/windows/history/HistoryItem'
+      './HistoryItem'
     )
     const record = makeRecord({
       originalText: 'same text',
@@ -147,7 +147,7 @@ describe('HistoryWindow', () => {
 
   it('renders search input and filter dropdown', async () => {
     const { HistoryWindow } = await import(
-      '../../src/windows/history/HistoryWindow'
+      './HistoryWindow'
     )
     const store = createHistoryStore()
     renderWithI18n(<HistoryWindow store={store} />)
@@ -158,7 +158,7 @@ describe('HistoryWindow', () => {
 
   it('renders grouped records by date', async () => {
     const { HistoryWindow } = await import(
-      '../../src/windows/history/HistoryWindow'
+      './HistoryWindow'
     )
     const store = createHistoryStore()
 
@@ -194,7 +194,7 @@ describe('HistoryWindow', () => {
 
   it('shows record count in footer', async () => {
     const { HistoryWindow } = await import(
-      '../../src/windows/history/HistoryWindow'
+      './HistoryWindow'
     )
     const store = createHistoryStore()
 

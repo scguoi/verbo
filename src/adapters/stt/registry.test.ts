@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createSTTRegistry } from '../../src/adapters/stt/registry'
-import type { STTAdapter } from '../../src/adapters/stt/types'
+import { createSTTRegistry } from './registry'
+import type { STTAdapter } from './types'
 
 function makeMockAdapter(name: string): STTAdapter {
   return {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createRecordingStore, type RecordingStore } from '../../src/stores/recording'
-import type { PipelineState } from '../../src/types/pipeline'
+import { createRecordingStore, type RecordingStore } from './recording'
+import type { PipelineState } from '../types/pipeline'
 import type { StoreApi } from 'zustand/vanilla'
 
 describe('RecordingStore', () => {
