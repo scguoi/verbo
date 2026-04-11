@@ -2,9 +2,11 @@ import SwiftUI
 
 @main
 struct VerboApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some SwiftUI.Scene {
         Settings {
-            Text("Verbo v0.1.0")
+            EmptyView()
         }
     }
 }

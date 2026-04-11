@@ -12,6 +12,7 @@
 		071AE2F25792F0DFBC0D93B7 /* IFlytekSTTAdapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB9B00E653E44CF0C8378E4 /* IFlytekSTTAdapterTests.swift */; };
 		0A24E744B047FA9F302BE3A3 /* AppConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399504EE7FAE42FCD6D52017 /* AppConfigTests.swift */; };
 		0B20B8CF6DC30E5CBB7E12F4 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6ECAE7AE273CA981884EB6 /* SettingsViewModel.swift */; };
+		122CE8E0BCA3485432D75454 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF48B974B373441E0B5958F /* AppDelegate.swift */; };
 		1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD38268FAC0A3061AB25F63 /* HistoryRecord.swift */; };
 		145109E557E743572666E7D6 /* SceneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5CE5DB514E21CCFB064B0BB /* SceneTests.swift */; };
 		14EA1FABFBFD5CE4516F9E92 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */; };
@@ -95,6 +96,7 @@
 		9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerboApp.swift; sourceTree = "<group>"; };
 		9B3086C1E4529C308B3DC4DA /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
 		9B596814261B0017D5DA229B /* ProvidersSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProvidersSettingsView.swift; sourceTree = "<group>"; };
+		9CF48B974B373441E0B5958F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		AD6ECAE7AE273CA981884EB6 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		B3293E4A3E37904545C16E7F /* PillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillView.swift; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 		3AF34662D80ADC260F7403D8 /* Verbo */ = {
 			isa = PBXGroup;
 			children = (
+				9CF48B974B373441E0B5958F /* AppDelegate.swift */,
 				9AD41395CCFE3EE703DC2E4D /* VerboApp.swift */,
 				A1F82681EBD1CA43D613FE34 /* Adapters */,
 				E2B584DFFF7B9807A48940CC /* Core */,
@@ -384,6 +387,7 @@
 			files = (
 				050FDBF06343FA161D422B8F /* AboutView.swift in Sources */,
 				4C0812D4156E77E4505971A8 /* AppConfig.swift in Sources */,
+				122CE8E0BCA3485432D75454 /* AppDelegate.swift in Sources */,
 				50DB8A1047A0EF4CC901A8DC /* AudioRecorder.swift in Sources */,
 				AA7C4E25E38AD86725E59DA8 /* BubbleView.swift in Sources */,
 				59969CDA808AEF5AAA82DAE5 /* ConfigManager.swift in Sources */,
