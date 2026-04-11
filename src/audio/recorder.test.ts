@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createAudioRecorder } from '../../src/audio/recorder'
-import type { AudioRecorder } from '../../src/audio/recorder'
+import { createAudioRecorder } from './recorder'
+import type { AudioRecorder } from './recorder'
 
 // ---------------------------------------------------------------------------
 // Mock helpers

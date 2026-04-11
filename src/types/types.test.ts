@@ -15,7 +15,7 @@ import type {
   AppConfig,
   OutputStatus,
   HistoryRecord,
-} from '../src/types'
+} from '.'
 
 describe('pipeline types', () => {
   it('should create a valid STTStep', () => {
@@ -304,7 +304,7 @@ describe('history types', () => {
 describe('barrel re-exports', () => {
   it('should export all types from index', async () => {
     // Verify the barrel file can be imported without errors
-    const types = await import('../src/types')
+    const types = await import('.')
     expect(types).toBeDefined()
   })
 })

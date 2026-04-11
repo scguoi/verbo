@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
-import type { STTAdapter } from '../src/adapters/stt/types'
-import type { LLMAdapter } from '../src/adapters/llm/types'
-import type { PipelineStep, PipelineState } from '../src/types/pipeline'
-import { executePipeline } from '../src/engine/pipeline'
-import type { PipelineContext } from '../src/engine/pipeline'
+import type { STTAdapter } from '../adapters/stt/types'
+import type { LLMAdapter } from '../adapters/llm/types'
+import type { PipelineStep, PipelineState } from '../types/pipeline'
+import { executePipeline } from './pipeline'
+import type { PipelineContext } from './pipeline'
 
 // ---------------------------------------------------------------------------
 // Helpers

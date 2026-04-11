@@ -3,9 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { en } from '../../src/i18n/en'
-import { useConfigStore } from '../../src/config/store'
-import { DEFAULT_CONFIG } from '../../src/config/defaults'
+import { en } from '../../i18n/en'
+import { useConfigStore } from '../../config/store'
+import { DEFAULT_CONFIG } from '../../config/defaults'
 
 // Mock Tauri APIs
 vi.mock('@tauri-apps/api', () => ({}))
@@ -36,7 +36,7 @@ describe('SettingsWindow', () => {
 
   it('renders sidebar with all tab labels', async () => {
     const { SettingsWindow } = await import(
-      '../../src/windows/settings/SettingsWindow'
+      './SettingsWindow'
     )
     renderWithI18n(<SettingsWindow />)
 
@@ -49,7 +49,7 @@ describe('SettingsWindow', () => {
 
   it('clicking tab changes content', async () => {
     const { SettingsWindow } = await import(
-      '../../src/windows/settings/SettingsWindow'
+      './SettingsWindow'
     )
     renderWithI18n(<SettingsWindow />)
 
@@ -78,7 +78,7 @@ describe('ScenesPage', () => {
 
   it('lists all scenes from config', async () => {
     const { ScenesPage } = await import(
-      '../../src/windows/settings/ScenesPage'
+      './ScenesPage'
     )
     renderWithI18n(<ScenesPage onSelectScene={vi.fn()} />)
 
@@ -89,7 +89,7 @@ describe('ScenesPage', () => {
 
   it('shows default badge on the default scene', async () => {
     const { ScenesPage } = await import(
-      '../../src/windows/settings/ScenesPage'
+      './ScenesPage'
     )
     renderWithI18n(<ScenesPage onSelectScene={vi.fn()} />)
 
@@ -99,7 +99,7 @@ describe('ScenesPage', () => {
 
   it('calls onSelectScene when a scene is clicked', async () => {
     const { ScenesPage } = await import(
-      '../../src/windows/settings/ScenesPage'
+      './ScenesPage'
     )
     const onSelect = vi.fn()
     renderWithI18n(<ScenesPage onSelectScene={onSelect} />)
@@ -116,7 +116,7 @@ describe('SceneEditor', () => {
 
   it('shows scene name input with correct value', async () => {
     const { SceneEditor } = await import(
-      '../../src/windows/settings/SceneEditor'
+      './SceneEditor'
     )
     renderWithI18n(<SceneEditor sceneId="dictate" onBack={vi.fn()} />)
 
@@ -126,7 +126,7 @@ describe('SceneEditor', () => {
 
   it('shows breadcrumb with scene name', async () => {
     const { SceneEditor } = await import(
-      '../../src/windows/settings/SceneEditor'
+      './SceneEditor'
     )
     renderWithI18n(<SceneEditor sceneId="polish" onBack={vi.fn()} />)
 
@@ -137,7 +137,7 @@ describe('SceneEditor', () => {
 
   it('renders pipeline steps', async () => {
     const { SceneEditor } = await import(
-      '../../src/windows/settings/SceneEditor'
+      './SceneEditor'
     )
     renderWithI18n(<SceneEditor sceneId="polish" onBack={vi.fn()} />)
 
@@ -147,7 +147,7 @@ describe('SceneEditor', () => {
 
   it('calls onBack when cancel is clicked', async () => {
     const { SceneEditor } = await import(
-      '../../src/windows/settings/SceneEditor'
+      './SceneEditor'
     )
     const onBack = vi.fn()
     renderWithI18n(<SceneEditor sceneId="dictate" onBack={onBack} />)
@@ -164,7 +164,7 @@ describe('ProvidersPage', () => {
 
   it('renders STT and LLM sections', async () => {
     const { ProvidersPage } = await import(
-      '../../src/windows/settings/ProvidersPage'
+      './ProvidersPage'
     )
     renderWithI18n(<ProvidersPage />)
 
@@ -178,7 +178,7 @@ describe('ProvidersPage', () => {
 
   it('renders provider cards', async () => {
     const { ProvidersPage } = await import(
-      '../../src/windows/settings/ProvidersPage'
+      './ProvidersPage'
     )
     renderWithI18n(<ProvidersPage />)
 
@@ -188,7 +188,7 @@ describe('ProvidersPage', () => {
 
   it('renders language chips for STT providers', async () => {
     const { ProvidersPage } = await import(
-      '../../src/windows/settings/ProvidersPage'
+      './ProvidersPage'
     )
     renderWithI18n(<ProvidersPage />)
 
@@ -204,7 +204,7 @@ describe('GeneralPage', () => {
 
   it('renders global hotkey fields', async () => {
     const { GeneralPage } = await import(
-      '../../src/windows/settings/GeneralPage'
+      './GeneralPage'
     )
     renderWithI18n(<GeneralPage />)
 
@@ -221,7 +221,7 @@ describe('GeneralPage', () => {
 
   it('renders general page container', async () => {
     const { GeneralPage } = await import(
-      '../../src/windows/settings/GeneralPage'
+      './GeneralPage'
     )
     renderWithI18n(<GeneralPage />)
 
@@ -232,7 +232,7 @@ describe('GeneralPage', () => {
 describe('AboutPage', () => {
   it('shows version number', async () => {
     const { AboutPage } = await import(
-      '../../src/windows/settings/AboutPage'
+      './AboutPage'
     )
     renderWithI18n(<AboutPage />)
 
@@ -242,7 +242,7 @@ describe('AboutPage', () => {
 
   it('shows app name and license', async () => {
     const { AboutPage } = await import(
-      '../../src/windows/settings/AboutPage'
+      './AboutPage'
     )
     renderWithI18n(<AboutPage />)
 

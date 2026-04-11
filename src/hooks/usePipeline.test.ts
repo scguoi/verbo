@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import type { AudioRecorder } from '../../src/audio/recorder'
-import type { Scene } from '../../src/types/pipeline'
-import type { RecordingStore } from '../../src/stores/recording'
-import type { HistoryStore } from '../../src/stores/history'
-import { usePipeline } from '../../src/hooks/usePipeline'
-import type { PipelineHookDeps } from '../../src/hooks/usePipeline'
+import type { AudioRecorder } from '../audio/recorder'
+import type { Scene } from '../types/pipeline'
+import type { RecordingStore } from '../stores/recording'
+import type { HistoryStore } from '../stores/history'
+import { usePipeline } from './usePipeline'
+import type { PipelineHookDeps } from './usePipeline'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -23,13 +23,13 @@ const mockRecorderInstance: AudioRecorder = {
   isRecording: vi.fn().mockReturnValue(false),
 }
 
-vi.mock('../../src/audio/recorder', () => ({
+vi.mock('../audio/recorder', () => ({
   createAudioRecorder: () => ({ ...mockRecorderInstance }),
 }))
 
 const mockExecutePipeline = vi.fn().mockResolvedValue('final output')
 
-vi.mock('../../src/engine/pipeline', () => ({
+vi.mock('../engine/pipeline', () => ({
   executePipeline: (...args: unknown[]) => mockExecutePipeline(...args),
 }))
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createOpenAIAdapter } from '../../src/adapters/llm/openai'
-import type { LLMAdapter, LLMOptions } from '../../src/adapters/llm/types'
+import { createOpenAIAdapter } from './openai'
+import type { LLMAdapter, LLMOptions } from './types'
 
 const DEFAULT_CONFIG = {
   apiKey: 'test-api-key',

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { DEFAULT_CONFIG } from '../src/config/defaults'
-import { useConfigStore } from '../src/config/store'
-import type { AppConfig } from '../src/types'
+import { DEFAULT_CONFIG } from './defaults'
+import { useConfigStore } from './store'
+import type { AppConfig } from '../types'
 
 describe('DEFAULT_CONFIG', () => {
   it('has version 1', () => {

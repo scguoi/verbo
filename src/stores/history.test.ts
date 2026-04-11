@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createHistoryStore, type HistoryStore, type NewRecord } from '../../src/stores/history'
+import { createHistoryStore, type HistoryStore, type NewRecord } from './history'
 import type { StoreApi } from 'zustand/vanilla'
 
 describe('HistoryStore', () => {
