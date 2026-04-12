@@ -12,6 +12,9 @@ DerivedData/
 *.perspectivev3
 *.moved-aside
 
+# Code coverage artifacts
+*.profraw
+
 # Swift Package Manager
 .build/
 Packages/
