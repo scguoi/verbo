@@ -6,30 +6,33 @@ struct ScenesSettingsView: View {
 
     @Bindable var viewModel: SettingsViewModel
     @State private var editDraft: Scene?
+    @State private var selectedSceneId: String?
 
     var body: some View {
         HSplitView {
             sceneList
-                .frame(minWidth: 200, maxWidth: 260)
+                .frame(minWidth: 200, idealWidth: 220, maxWidth: 240)
 
-            if viewModel.isEditingScene, let draft = editDraft {
+            if let draft = editDraft {
                 SceneEditorView(
                     scene: draft,
+                    availableSTTProviders: Array(viewModel.config.providers.stt.keys.sorted()),
+                    availableLLMProviders: Array(viewModel.config.providers.llm.keys.sorted()),
                     onSave: { updated in
                         viewModel.saveEditingScene(updated)
-                        editDraft = nil
+                        editDraft = updated
+                        selectedSceneId = updated.id
                     },
                     onCancel: {
                         viewModel.cancelEditingScene()
                         editDraft = nil
+                        selectedSceneId = nil
                     }
                 )
+                .id(draft.id)
             } else {
                 placeholderView
             }
-        }
-        .onChange(of: viewModel.editingScene) { _, newValue in
-            editDraft = newValue
         }
     }
 
@@ -37,24 +40,55 @@ struct ScenesSettingsView: View {
 
     private var sceneList: some View {
         VStack(spacing: 0) {
-            List(viewModel.config.scenes) { scene in
-                SceneRowView(
-                    scene: scene,
-                    isDefault: scene.id == viewModel.config.defaultScene,
-                    onSetDefault: { viewModel.selectSceneAsDefault(scene.id) },
-                    onEdit: {
-                        viewModel.startEditingScene(scene)
-                    },
-                    onDelete: { viewModel.deleteScene(scene.id) }
-                )
-                .listRowInsets(EdgeInsets(
-                    top: DesignTokens.Spacing.xs,
-                    leading: DesignTokens.Spacing.sm,
-                    bottom: DesignTokens.Spacing.xs,
-                    trailing: DesignTokens.Spacing.sm
-                ))
+            // Header with add button
+            HStack {
+                Text(String(localized: "settings.scenes.header"))
+                    .font(DesignTokens.Typography.settingsTitle)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                Spacer()
+                Button(action: {
+                    let newScene = viewModel.createScene()
+                    selectedSceneId = newScene.id
+                    editDraft = newScene
+                    viewModel.startEditingScene(newScene)
+                }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.borderless)
+                .help(String(localized: "settings.scenes.add"))
             }
-            .listStyle(.sidebar)
+            .padding(.horizontal, DesignTokens.Spacing.md)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+
+            Divider()
+
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(viewModel.config.scenes) { scene in
+                        SceneRowView(
+                            scene: scene,
+                            isDefault: scene.id == viewModel.config.defaultScene,
+                            isSelected: scene.id == selectedSceneId,
+                            onTap: {
+                                selectedSceneId = scene.id
+                                editDraft = scene
+                                viewModel.startEditingScene(scene)
+                            },
+                            onSetDefault: { viewModel.selectSceneAsDefault(scene.id) },
+                            onDelete: {
+                                viewModel.deleteScene(scene.id)
+                                if selectedSceneId == scene.id {
+                                    selectedSceneId = nil
+                                    editDraft = nil
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding(DesignTokens.Spacing.sm)
+            }
         }
     }
 
@@ -65,7 +99,7 @@ struct ScenesSettingsView: View {
             Spacer()
             Text(String(localized: "settings.scenes.select_hint"))
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.stoneGray)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -78,22 +112,24 @@ private struct SceneRowView: View {
 
     let scene: Scene
     let isDefault: Bool
+    let isSelected: Bool
+    let onTap: () -> Void
     let onSetDefault: () -> Void
-    let onEdit: () -> Void
     let onDelete: () -> Void
 
+    @State private var isHovered = false
+
     private var pipelineSummary: String {
-        scene.pipeline.map { step in
-            step.type == .stt ? "STT" : "LLM"
-        }.joined(separator: " → ")
+        scene.pipeline.map { $0.type == .stt ? "STT" : "LLM" }.joined(separator: " → ")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            // Row 1: Name + Default badge
             HStack {
                 Text(scene.name)
                     .font(DesignTokens.Typography.settingsTitle)
-                    .foregroundStyle(DesignTokens.Colors.nearBlack)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                 Spacer()
 
@@ -108,24 +144,30 @@ private struct SceneRowView: View {
                 }
             }
 
-            Text(pipelineSummary)
-                .font(DesignTokens.Typography.settingsCaption)
-                .foregroundStyle(DesignTokens.Colors.stoneGray)
+            // Row 2: Pipeline summary + hotkey (single line)
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text(pipelineSummary)
+                    .font(DesignTokens.Typography.settingsCaption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
 
-            if let toggleHotkey = scene.hotkey.toggleRecord {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: "keyboard")
-                        .font(.system(size: 10))
-                    Text(toggleHotkey)
-                        .font(DesignTokens.Typography.settingsCaption)
+                Spacer()
+
+                if let toggleHotkey = scene.hotkey.toggleRecord, !toggleHotkey.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "keyboard")
+                            .font(.system(size: 10))
+                        Text(HotkeyManager.displayString(for: toggleHotkey))
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    }
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(DesignTokens.Colors.surfaceElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
-                .foregroundStyle(DesignTokens.Colors.oliveGray)
-                .padding(.horizontal, DesignTokens.Spacing.xs)
-                .padding(.vertical, 2)
-                .background(DesignTokens.Colors.warmSand.opacity(0.5))
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.small))
             }
 
+            // Row 3: Actions (only set-default and delete; edit is via row tap)
             HStack(spacing: DesignTokens.Spacing.sm) {
                 if !isDefault {
                     Button(String(localized: "settings.scenes.set_default")) {
@@ -135,13 +177,6 @@ private struct SceneRowView: View {
                     .font(DesignTokens.Typography.settingsCaption)
                     .foregroundStyle(DesignTokens.Colors.focusBlue)
                 }
-
-                Button(String(localized: "settings.scenes.edit")) {
-                    onEdit()
-                }
-                .buttonStyle(.borderless)
-                .font(DesignTokens.Typography.settingsCaption)
-                .foregroundStyle(DesignTokens.Colors.focusBlue)
 
                 Spacer()
 
@@ -153,7 +188,27 @@ private struct SceneRowView: View {
                 .foregroundStyle(DesignTokens.Colors.errorCrimson)
             }
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        .padding(DesignTokens.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: DesignTokens.Radius.medium)
+                .fill(rowBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignTokens.Radius.medium)
+                .stroke(isSelected ? DesignTokens.Colors.terracotta : Color.clear, lineWidth: 1.5)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .onHover { isHovered = $0 }
+    }
+
+    private var rowBackground: Color {
+        if isSelected {
+            return DesignTokens.Colors.terracotta.opacity(0.12)
+        } else if isHovered {
+            return DesignTokens.Colors.surfaceElevated.opacity(0.5)
+        }
+        return .clear
     }
 }
 
@@ -162,11 +217,21 @@ private struct SceneRowView: View {
 private struct SceneEditorView: View {
 
     @State private var draft: Scene
+    let availableSTTProviders: [String]
+    let availableLLMProviders: [String]
     let onSave: (Scene) -> Void
     let onCancel: () -> Void
 
-    init(scene: Scene, onSave: @escaping (Scene) -> Void, onCancel: @escaping () -> Void) {
+    init(
+        scene: Scene,
+        availableSTTProviders: [String],
+        availableLLMProviders: [String],
+        onSave: @escaping (Scene) -> Void,
+        onCancel: @escaping () -> Void
+    ) {
         _draft = State(initialValue: scene)
+        self.availableSTTProviders = availableSTTProviders
+        self.availableLLMProviders = availableLLMProviders
         self.onSave = onSave
         self.onCancel = onCancel
     }
@@ -181,63 +246,82 @@ private struct SceneEditorView: View {
                     .font(DesignTokens.Typography.settingsBody)
 
                 // Pipeline
-                sectionHeader(String(localized: "settings.scenes.editor.pipeline"))
-                ForEach(draft.pipeline.indices, id: \.self) { idx in
-                    PipelineStepCard(step: draft.pipeline[idx])
+                HStack {
+                    sectionHeader(String(localized: "settings.scenes.editor.pipeline"))
+                    Spacer()
+                    Menu {
+                        Button(action: { addStep(.stt) }) {
+                            Label(String(localized: "settings.scenes.editor.add_stt"), systemImage: "mic.fill")
+                        }
+                        Button(action: { addStep(.llm) }) {
+                            Label(String(localized: "settings.scenes.editor.add_llm"), systemImage: "cpu")
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 16))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                 }
+
+                ForEach(draft.pipeline.indices, id: \.self) { idx in
+                    EditablePipelineStepCard(
+                        step: Binding(
+                            get: { draft.pipeline[idx] },
+                            set: { draft.pipeline[idx] = $0 }
+                        ),
+                        availableSTT: availableSTTProviders,
+                        availableLLM: availableLLMProviders,
+                        canMoveUp: idx > 0,
+                        canMoveDown: idx < draft.pipeline.count - 1,
+                        onMoveUp: { moveStep(from: idx, to: idx - 1) },
+                        onMoveDown: { moveStep(from: idx, to: idx + 1) },
+                        onDelete: { draft.pipeline.remove(at: idx) }
+                    )
+                }
+
+                // Output Mode
+                sectionHeader(String(localized: "settings.scenes.editor.output"))
+                Picker("", selection: $draft.output) {
+                    Text(String(localized: "settings.general.output_mode.simulate")).tag(OutputMode.simulate)
+                    Text(String(localized: "settings.general.output_mode.clipboard")).tag(OutputMode.clipboard)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
 
                 // Hotkeys
                 sectionHeader(String(localized: "settings.scenes.editor.hotkeys"))
-                HStack {
+                HStack(spacing: DesignTokens.Spacing.md) {
                     Text(String(localized: "settings.scenes.editor.toggle_hotkey"))
                         .font(DesignTokens.Typography.settingsBody)
-                        .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .frame(width: 100, alignment: .leading)
+                    KeyRecorderView(shortcut: Binding(
+                        get: { draft.hotkey.toggleRecord ?? "" },
+                        set: {
+                            draft.hotkey = SceneHotkey(
+                                toggleRecord: $0.isEmpty ? nil : $0,
+                                pushToTalk: draft.hotkey.pushToTalk
+                            )
+                        }
+                    ))
                     Spacer()
-                    TextField(
-                        String(localized: "settings.scenes.editor.hotkey_placeholder"),
-                        text: Binding(
-                            get: { draft.hotkey.toggleRecord ?? "" },
-                            set: { draft = Scene(
-                                id: draft.id,
-                                name: draft.name,
-                                hotkey: SceneHotkey(
-                                    toggleRecord: $0.isEmpty ? nil : $0,
-                                    pushToTalk: draft.hotkey.pushToTalk
-                                ),
-                                pipeline: draft.pipeline,
-                                output: draft.output
-                            )}
-                        )
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 160)
-                    .font(DesignTokens.Typography.settingsBody)
                 }
-
-                HStack {
+                HStack(spacing: DesignTokens.Spacing.md) {
                     Text(String(localized: "settings.scenes.editor.ptt_hotkey"))
                         .font(DesignTokens.Typography.settingsBody)
-                        .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .frame(width: 100, alignment: .leading)
+                    KeyRecorderView(shortcut: Binding(
+                        get: { draft.hotkey.pushToTalk ?? "" },
+                        set: {
+                            draft.hotkey = SceneHotkey(
+                                toggleRecord: draft.hotkey.toggleRecord,
+                                pushToTalk: $0.isEmpty ? nil : $0
+                            )
+                        }
+                    ))
                     Spacer()
-                    TextField(
-                        String(localized: "settings.scenes.editor.hotkey_placeholder"),
-                        text: Binding(
-                            get: { draft.hotkey.pushToTalk ?? "" },
-                            set: { draft = Scene(
-                                id: draft.id,
-                                name: draft.name,
-                                hotkey: SceneHotkey(
-                                    toggleRecord: draft.hotkey.toggleRecord,
-                                    pushToTalk: $0.isEmpty ? nil : $0
-                                ),
-                                pipeline: draft.pipeline,
-                                output: draft.output
-                            )}
-                        )
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 160)
-                    .font(DesignTokens.Typography.settingsBody)
                 }
 
                 // Save / Cancel
@@ -263,7 +347,160 @@ private struct SceneEditorView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(DesignTokens.Typography.settingsTitle)
-            .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+    }
+
+    private func addStep(_ type: PipelineStep.StepType) {
+        let newStep: PipelineStep
+        switch type {
+        case .stt:
+            newStep = PipelineStep(
+                type: .stt,
+                provider: availableSTTProviders.first ?? "iflytek",
+                lang: "zh",
+                prompt: nil
+            )
+        case .llm:
+            newStep = PipelineStep(
+                type: .llm,
+                provider: availableLLMProviders.first ?? "openai",
+                lang: nil,
+                prompt: "{{input}}"
+            )
+        }
+        draft.pipeline.append(newStep)
+    }
+
+    private func moveStep(from: Int, to: Int) {
+        guard from != to, draft.pipeline.indices.contains(from), draft.pipeline.indices.contains(to) else { return }
+        let step = draft.pipeline.remove(at: from)
+        draft.pipeline.insert(step, at: to)
+    }
+}
+
+// MARK: - EditablePipelineStepCard
+
+private struct EditablePipelineStepCard: View {
+    @Binding var step: PipelineStep
+    let availableSTT: [String]
+    let availableLLM: [String]
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onDelete: () -> Void
+
+    private let labelColumnWidth: CGFloat = 72
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            // Header: type icon + type label + controls
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: step.type == .stt ? "mic.fill" : "cpu")
+                    .font(.system(size: 14))
+                    .foregroundStyle(DesignTokens.Colors.terracotta)
+                    .frame(width: 20)
+
+                Text(step.type.rawValue.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                Spacer()
+
+                Button(action: onMoveUp) {
+                    Image(systemName: "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                .disabled(!canMoveUp)
+
+                Button(action: onMoveDown) {
+                    Image(systemName: "chevron.down")
+                }
+                .buttonStyle(.borderless)
+                .disabled(!canMoveDown)
+
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundStyle(DesignTokens.Colors.errorCrimson)
+                }
+                .buttonStyle(.borderless)
+            }
+
+            // Aligned label/control rows
+            Grid(alignment: .leadingFirstTextBaseline,
+                 horizontalSpacing: DesignTokens.Spacing.sm,
+                 verticalSpacing: DesignTokens.Spacing.sm) {
+                GridRow {
+                    Text(String(localized: "settings.scenes.editor.provider"))
+                        .font(DesignTokens.Typography.settingsCaption)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .frame(width: labelColumnWidth, alignment: .leading)
+                    Picker("", selection: $step.provider) {
+                        let options = step.type == .stt ? availableSTT : availableLLM
+                        ForEach(options, id: \.self) { p in
+                            Text(p).tag(p)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 180, alignment: .leading)
+                    .gridColumnAlignment(.leading)
+                }
+
+                if step.type == .stt {
+                    GridRow {
+                        Text(String(localized: "settings.scenes.editor.language"))
+                            .font(DesignTokens.Typography.settingsCaption)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .frame(width: labelColumnWidth, alignment: .leading)
+                        Picker("", selection: Binding(
+                            get: { step.lang ?? "zh" },
+                            set: { step.lang = $0 }
+                        )) {
+                            Text("中文").tag("zh")
+                            Text("English").tag("en")
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: 180, alignment: .leading)
+                        .gridColumnAlignment(.leading)
+                    }
+                } else {
+                    GridRow(alignment: .top) {
+                        Text(String(localized: "settings.scenes.editor.prompt"))
+                            .font(DesignTokens.Typography.settingsCaption)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .frame(width: labelColumnWidth, alignment: .leading)
+                            .padding(.top, 6)
+                        VStack(alignment: .leading, spacing: 4) {
+                            TextEditor(text: Binding(
+                                get: { step.prompt ?? "" },
+                                set: { step.prompt = $0 }
+                            ))
+                            .font(.system(size: 12, design: .monospaced))
+                            .frame(minHeight: 80, maxHeight: 120)
+                            .padding(4)
+                            .background(DesignTokens.Colors.surfaceElevated.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .strokeBorder(DesignTokens.Colors.borderAdaptive, lineWidth: 1)
+                            )
+                            Text(String(localized: "settings.scenes.editor.prompt_hint"))
+                                .font(.system(size: 10))
+                                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        }
+                        .gridColumnAlignment(.leading)
+                    }
+                }
+            }
+            .padding(.leading, 28)  // align under the type label, past the icon
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background(.quaternary.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.medium))
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignTokens.Radius.medium)
+                .strokeBorder(DesignTokens.Colors.borderAdaptive, lineWidth: 1)
+        )
     }
 }
 
@@ -274,34 +511,34 @@ private struct PipelineStepCard: View {
     let step: PipelineStep
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: step.type == .stt ? "mic.fill" : "cpu")
-                .font(.system(size: 14))
+                .font(.system(size: 16))
                 .foregroundStyle(DesignTokens.Colors.terracotta)
-                .frame(width: 24, height: 24)
+                .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(step.type.rawValue.uppercased())
                     .font(DesignTokens.Typography.settingsCaption)
-                    .foregroundStyle(DesignTokens.Colors.stoneGray)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
                 Text(step.provider)
                     .font(DesignTokens.Typography.settingsBody)
-                    .foregroundStyle(DesignTokens.Colors.nearBlack)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
                 if let lang = step.lang {
                     Text(lang)
                         .font(DesignTokens.Typography.settingsCaption)
-                        .foregroundStyle(DesignTokens.Colors.oliveGray)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
             }
 
             Spacer()
         }
-        .padding(DesignTokens.Spacing.sm)
-        .background(DesignTokens.Colors.parchment)
+        .padding(DesignTokens.Spacing.md)
+        .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.medium))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.Radius.medium)
-                .stroke(DesignTokens.Colors.borderWarm, lineWidth: 1)
+                .strokeBorder(DesignTokens.Colors.borderAdaptive, lineWidth: 1)
         )
     }
 }

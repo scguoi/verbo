@@ -14,21 +14,21 @@ struct AboutView: View {
 
             Text("Verbo")
                 .font(.system(size: 28, weight: .bold, design: .serif))
-                .foregroundStyle(DesignTokens.Colors.nearBlack)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             Text("v0.1.0")
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.stoneGray)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
 
             Text(String(localized: "about.description"))
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
 
             Text(String(localized: "about.license"))
                 .font(DesignTokens.Typography.settingsCaption)
-                .foregroundStyle(DesignTokens.Colors.stoneGray)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
 
             Spacer()
         }

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 import SwiftUI
@@ -40,6 +41,16 @@ final class FloatingViewModel {
     private var recordingTimer: Timer?
     private var collapseTask: Task<Void, Never>?
     private var pipelineTask: Task<Void, Never>?
+
+    /// Tracks the most recent non-Verbo frontmost app — robust against timing issues.
+    private let frontmostTracker = FrontmostAppTracker()
+
+    /// Target app captured at recording start (from tracker).
+    private var targetApplication: NSRunningApplication?
+
+    /// Timestamp of the second hotkey press (stop recording). Used to measure
+    /// the user-perceived end-to-end latency until the final result appears.
+    private var stopRequestedAt: Date?
 
     // MARK: - Init
 
@@ -106,10 +117,17 @@ final class FloatingViewModel {
         pipelineTask?.cancel()
         pipelineTask = nil
 
+        // Use the tracked frontmost app instead of NSWorkspace.frontmostApplication.
+        // The tracker keeps the most recent non-self app regardless of momentary
+        // focus shifts (e.g. toast hover, system notifications).
+        targetApplication = frontmostTracker.target
+        Log.ui.info("Captured target app: \(self.targetApplication?.bundleIdentifier ?? "nil", privacy: .public)")
+
         collapseTask?.cancel()
         isExpanded = false
         lastResult = nil
         lastSource = nil
+        stopRequestedAt = nil
         pipelineState = .recording
         recordingDuration = 0
 
@@ -125,6 +143,13 @@ final class FloatingViewModel {
 
     func stopRecording() {
         guard isRecording || isTranscribing else { return }
+        // Capture the moment the user asked to stop — used as the anchor for
+        // the user-perceived end-to-end latency (until final result appears).
+        // Only the first call wins so that retries / double-invocations don't
+        // reset the anchor.
+        if stopRequestedAt == nil {
+            stopRequestedAt = Date()
+        }
         recordingTimer?.invalidate()
         recordingTimer = nil
         Task { _ = await audioRecorder.stop() }
@@ -209,9 +234,27 @@ final class FloatingViewModel {
                 ) {
                     pipelineState = state
                     if case .done(let result, let source) = state {
+                        // Capture perceived latency BEFORE focus-restore sleep
+                        // and text output — "seeing the complete result" is
+                        // the moment the bubble expands with the final text.
+                        let latencyMs: Int? = stopRequestedAt.map {
+                            Int(Date().timeIntervalSince($0) * 1000)
+                        }
+
                         lastResult = result
                         lastSource = source
                         isExpanded = true
+
+                        // Restore focus to the app that was frontmost when recording started.
+                        // Safety net: CGEvent keyboard input goes to the current frontmost app,
+                        // so we need to ensure it's the user's original target.
+                        if let target = targetApplication,
+                           target.bundleIdentifier != Bundle.main.bundleIdentifier {
+                            target.activate()
+                            // Give macOS a moment to process the activation
+                            try? await Task.sleep(for: .milliseconds(50))
+                        }
+
                         let status = await textOutputService.output(text: result, mode: outputMode)
                         let record = HistoryRecord(
                             id: UUID(),
@@ -221,7 +264,8 @@ final class FloatingViewModel {
                             originalText: source ?? result,
                             finalText: result,
                             outputStatus: status,
-                            pipelineSteps: pipelineSteps
+                            pipelineSteps: pipelineSteps,
+                            endToEndLatencyMs: latencyMs
                         )
                         historyManager?.add(record)
                         try? historyManager?.save()
@@ -236,11 +280,13 @@ final class FloatingViewModel {
 
     private func scheduleCollapse() {
         let delay = configManager?.config.general.autoCollapseDelay ?? 1.5
-        guard delay > 0 else { return }
+        // Negative = never collapse. Zero = collapse immediately.
+        guard delay >= 0 else { return }
         collapseTask = Task {
-            try? await Task.sleep(for: .seconds(delay))
+            if delay > 0 {
+                try? await Task.sleep(for: .seconds(delay))
+            }
             if !Task.isCancelled && !toastHovered {
-                // Copy to clipboard on dismiss if configured
                 if configManager?.config.general.copyOnDismiss == true,
                    let result = lastResult {
                     textOutputService.writeToClipboard(result)

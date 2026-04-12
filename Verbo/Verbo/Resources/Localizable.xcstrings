@@ -1,450 +1,1430 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "about.description" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "An open-source modular voice input tool for macOS." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "一个开源的模块化语音输入工具。" } }
-      }
-    },
-    "about.license" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MIT License" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MIT 协议" } }
-      }
-    },
-    "app.name" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Verbo" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Verbo" } }
-      }
-    },
-    "bubble.copy" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copy" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "复制" } }
-      }
-    },
-    "bubble.inserted" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Inserted" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已输入" } }
-      }
-    },
-    "bubble.recognizing" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recognizing..." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "识别中..." } }
-      }
-    },
-    "bubble.retry" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Retry" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "重试" } }
-      }
-    },
-    "history.clear_all" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear All" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清空全部" } }
-      }
-    },
-    "history.empty" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No history records" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂无历史记录" } }
-      }
-    },
-    "history.filter.all_scenes" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "All Scenes" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部场景" } }
-      }
-    },
-    "history.filter.scene" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Scene" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "场景" } }
-      }
-    },
-    "history.group.earlier" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Earlier" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更早" } }
-      }
-    },
-    "history.group.today" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Today" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "今天" } }
-      }
-    },
-    "history.group.yesterday" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Yesterday" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "昨天" } }
-      }
-    },
-    "history.search_placeholder" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search..." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "搜索..." } }
-      }
-    },
-    "history.status.copied" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copied" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已复制" } }
-      }
-    },
-    "history.status.failed" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "失败" } }
-      }
-    },
-    "history.status.inserted" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Inserted" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已输入" } }
-      }
-    },
-    "history.title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Input History" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "输入历史" } }
-      }
-    },
-    "history.view_original" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "View original" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "查看原文" } }
-      }
-    },
-    "menu.history" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Input History" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "输入历史" } }
-      }
-    },
-    "menu.quit" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Quit" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出" } }
-      }
-    },
-    "menu.settings" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
-      }
-    },
-    "pill.done" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成" } }
-      }
-    },
-    "pill.error" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Error" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "错误" } }
-      }
-    },
-    "pill.processing" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Processing" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "处理中" } }
-      }
-    },
-    "pill.recognizing" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recognizing..." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "识别中..." } }
-      }
-    },
-    "settings.general.auto_collapse_delay" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-collapse Delay" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自动折叠延迟" } }
-      }
-    },
-    "settings.general.behavior_section" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Behavior" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "行为" } }
-      }
-    },
-    "settings.general.data_section" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Data" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "数据" } }
-      }
-    },
-    "settings.general.history_retention" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "History Retention" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "历史保留" } }
-      }
-    },
-    "settings.general.hotkey_placeholder" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Click to record hotkey" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "点击录制快捷键" } }
-      }
-    },
-    "settings.general.hotkeys_section" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Global Hotkeys" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全局快捷键" } }
-      }
-    },
-    "settings.general.language.en" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "English" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "English" } }
-      }
-    },
-    "settings.general.language.system" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Follow System" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跟随系统" } }
-      }
-    },
-    "settings.general.language.zh" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Chinese (Simplified)" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "简体中文" } }
-      }
-    },
-    "settings.general.language_section" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Language" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言" } }
-      }
-    },
-    "settings.general.output_mode" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Output Mode" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "输出方式" } }
-      }
-    },
-    "settings.general.output_mode.clipboard" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剪贴板" } }
-      }
-    },
-    "settings.general.output_mode.simulate" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Simulate Input" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "模拟输入" } }
-      }
-    },
-    "settings.general.push_to_talk" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Push to Talk" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按住说话" } }
-      }
-    },
-    "settings.general.retention.30_days" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "30 Days" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "30 天" } }
-      }
-    },
-    "settings.general.retention.7_days" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "7 Days" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "7 天" } }
-      }
-    },
-    "settings.general.retention.90_days" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "90 Days" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "90 天" } }
-      }
-    },
-    "settings.general.retention.forever" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forever" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "永久" } }
-      }
-    },
-    "settings.general.toggle_record" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Toggle Record" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "切换录音" } }
-      }
-    },
-    "settings.general.ui_language" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "UI Language" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "界面语言" } }
-      }
-    },
-    "settings.providers.api_key" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "API Key" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "API Key" } }
-      }
-    },
-    "settings.providers.api_secret" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "API Secret" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "API Secret" } }
-      }
-    },
-    "settings.providers.app_id" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "App ID" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "App ID" } }
-      }
-    },
-    "settings.providers.base_url" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Base URL" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Base URL" } }
-      }
-    },
-    "settings.providers.llm_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LLM Providers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言模型服务商" } }
-      }
-    },
-    "settings.providers.model" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Model" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "模型" } }
-      }
-    },
-    "settings.providers.save" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存" } }
-      }
-    },
-    "settings.providers.stt_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Speech-to-Text Providers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语音识别服务商" } }
-      }
-    },
-    "settings.scenes.default_badge" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Default" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "默认" } }
-      }
-    },
-    "settings.scenes.delete" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除" } }
-      }
-    },
-    "settings.scenes.edit" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑" } }
-      }
-    },
-    "settings.scenes.editor.cancel" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
-      }
-    },
-    "settings.scenes.editor.hotkey_placeholder" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Click to record hotkey" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "点击录制快捷键" } }
-      }
-    },
-    "settings.scenes.editor.hotkeys" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hotkeys" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "快捷键" } }
-      }
-    },
-    "settings.scenes.editor.name" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Scene Name" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "场景名称" } }
-      }
-    },
-    "settings.scenes.editor.name_placeholder" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter scene name" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "输入场景名称" } }
-      }
-    },
-    "settings.scenes.editor.pipeline" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pipeline Steps" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "处理步骤" } }
-      }
-    },
-    "settings.scenes.editor.ptt_hotkey" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Push to Talk" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按住说话" } }
-      }
-    },
-    "settings.scenes.editor.save" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存" } }
-      }
-    },
-    "settings.scenes.editor.toggle_hotkey" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Toggle Record" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "切换录音" } }
-      }
-    },
-    "settings.scenes.select_hint" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Select a scene to edit" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择场景进行编辑" } }
-      }
-    },
-    "settings.scenes.set_default" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set as Default" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设为默认" } }
-      }
-    },
-    "settings.tab.about" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关于" } }
-      }
-    },
-    "settings.tab.general" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } }
-      }
-    },
-    "settings.tab.providers" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Providers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务商" } }
-      }
-    },
-    "settings.tab.scenes" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Scenes" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "场景" } }
-      }
-    },
-    "settings.title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
+  "sourceLanguage": "en",
+  "strings": {
+    "about.description": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An open-source modular voice input tool for macOS."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个开源的模块化语音输入工具。"
+          }
+        }
+      }
+    },
+    "about.license": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MIT License"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MIT 协议"
+          }
+        }
+      }
+    },
+    "app.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbo"
+          }
+        }
+      }
+    },
+    "bubble.copy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制"
+          }
+        }
+      }
+    },
+    "bubble.inserted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已输入"
+          }
+        }
+      }
+    },
+    "bubble.recognizing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing..."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别中..."
+          }
+        }
+      }
+    },
+    "bubble.retry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "history.clear_all": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear All"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空全部"
+          }
+        }
+      }
+    },
+    "history.empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No history records"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无历史记录"
+          }
+        }
+      }
+    },
+    "history.filter.all_scenes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All Scenes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部场景"
+          }
+        }
+      }
+    },
+    "history.filter.scene": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scene"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "场景"
+          }
+        }
+      }
+    },
+    "history.group.earlier": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earlier"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更早"
+          }
+        }
+      }
+    },
+    "history.group.today": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
+          }
+        }
+      }
+    },
+    "history.group.yesterday": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yesterday"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "昨天"
+          }
+        }
+      }
+    },
+    "history.search_placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search..."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索..."
+          }
+        }
+      }
+    },
+    "history.status.copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        }
+      }
+    },
+    "history.status.failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失败"
+          }
+        }
+      }
+    },
+    "history.status.inserted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已输入"
+          }
+        }
+      }
+    },
+    "history.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Input History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入历史"
+          }
+        }
+      }
+    },
+    "history.view_original": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View original"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看原文"
+          }
+        }
+      }
+    },
+    "menu.history": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Input History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入历史"
+          }
+        }
+      }
+    },
+    "menu.avg_latency.empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avg latency: —"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "平均耗时：—"
+          }
+        }
+      }
+    },
+    "menu.avg_latency.format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avg latency: %d ms (last %d)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "平均耗时：%d ms（近 %d 次）"
+          }
+        }
+      }
+    },
+    "menu.quit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出"
+          }
+        }
+      }
+    },
+    "menu.settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "pill.done": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "pill.error": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "错误"
+          }
+        }
+      }
+    },
+    "pill.processing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理中"
+          }
+        }
+      }
+    },
+    "pill.recognizing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing..."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别中..."
+          }
+        }
+      }
+    },
+    "settings.general.auto_collapse_delay": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-collapse Delay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动折叠延迟"
+          }
+        }
+      }
+    },
+    "settings.general.behavior_section": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behavior"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行为"
+          }
+        }
+      }
+    },
+    "settings.general.data_section": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据"
+          }
+        }
+      }
+    },
+    "settings.general.history_retention": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "History Retention"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "历史保留"
+          }
+        }
+      }
+    },
+    "settings.general.hotkey_placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to record hotkey"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击录制快捷键"
+          }
+        }
+      }
+    },
+    "settings.general.hotkeys_section": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Global Hotkeys"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全局快捷键"
+          }
+        }
+      }
+    },
+    "settings.general.language.en": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        }
+      }
+    },
+    "settings.general.language.system": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow System"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
+    "settings.general.language.zh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chinese (Simplified)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "简体中文"
+          }
+        }
+      }
+    },
+    "settings.general.language_section": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言"
+          }
+        }
+      }
+    },
+    "settings.general.output_mode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Output Mode"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输出方式"
+          }
+        }
+      }
+    },
+    "settings.general.output_mode.clipboard": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clipboard"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板"
+          }
+        }
+      }
+    },
+    "settings.general.output_mode.simulate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simulate Input"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模拟输入"
+          }
+        }
+      }
+    },
+    "settings.general.push_to_talk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push to Talk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住说话"
+          }
+        }
+      }
+    },
+    "settings.general.retention.30_days": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 Days"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 天"
+          }
+        }
+      }
+    },
+    "settings.general.retention.7_days": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 Days"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 天"
+          }
+        }
+      }
+    },
+    "settings.general.retention.90_days": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90 Days"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90 天"
+          }
+        }
+      }
+    },
+    "settings.general.retention.forever": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forever"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永久"
+          }
+        }
+      }
+    },
+    "settings.general.toggle_record": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toggle Record"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换录音"
+          }
+        }
+      }
+    },
+    "settings.general.ui_language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UI Language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面语言"
+          }
+        }
+      }
+    },
+    "settings.providers.api_key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key"
+          }
+        }
+      }
+    },
+    "settings.providers.api_secret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Secret"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Secret"
+          }
+        }
+      }
+    },
+    "settings.providers.app_id": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App ID"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App ID"
+          }
+        }
+      }
+    },
+    "settings.providers.base_url": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base URL"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base URL"
+          }
+        }
+      }
+    },
+    "settings.providers.llm_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LLM Providers"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言模型服务商"
+          }
+        }
+      }
+    },
+    "settings.providers.model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型"
+          }
+        }
+      }
+    },
+    "settings.providers.save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
+    "settings.providers.stt_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech-to-Text Providers"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音识别服务商"
+          }
+        }
+      }
+    },
+    "settings.scenes.default_badge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认"
+          }
+        }
+      }
+    },
+    "settings.scenes.delete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
+          }
+        }
+      }
+    },
+    "settings.scenes.edit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.cancel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.hotkey_placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to record hotkey"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击录制快捷键"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.hotkeys": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hotkeys"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scene Name"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "场景名称"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.name_placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter scene name"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入场景名称"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.pipeline": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pipeline Steps"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理步骤"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.ptt_hotkey": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push to Talk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住说话"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.toggle_hotkey": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toggle Record"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换录音"
+          }
+        }
+      }
+    },
+    "settings.scenes.select_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a scene to edit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择场景进行编辑"
+          }
+        }
+      }
+    },
+    "settings.scenes.set_default": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set as Default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设为默认"
+          }
+        }
+      }
+    },
+    "settings.tab.about": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于"
+          }
+        }
+      }
+    },
+    "settings.tab.general": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "settings.tab.providers": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Providers"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务商"
+          }
+        }
+      }
+    },
+    "settings.tab.scenes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scenes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "场景"
+          }
+        }
+      }
+    },
+    "settings.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "settings.scenes.header": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scenes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "场景"
+          }
+        }
+      }
+    },
+    "settings.scenes.add": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Scene"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加场景"
+          }
+        }
+      }
+    },
+    "settings.scenes.new_scene_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Scene"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建场景"
+          }
+        }
+      }
+    },
+    "common.clear": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.output": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Output Mode"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输出方式"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.add_stt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Speech-to-Text Step"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加语音识别步骤"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.add_llm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add LLM Step"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加大模型步骤"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务商"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.prompt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompt"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示词"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.prompt_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use {{input}} as placeholder for the previous step's output."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 {{input}} 作为上一步输出的占位符"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.click_to_record": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to record"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击录制"
+          }
+        }
+      }
+    },
+    "settings.scenes.editor.press_key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press key combination..."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请按下快捷键..."
+          }
+        }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

@@ -48,7 +48,7 @@ struct ProvidersSettingsView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(DesignTokens.Typography.settingsTitle)
-            .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
     }
 }
 
@@ -70,7 +70,7 @@ private struct STTProviderCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(name.capitalized)
                 .font(DesignTokens.Typography.settingsTitle)
-                .foregroundStyle(DesignTokens.Colors.nearBlack)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             ProviderField(
                 label: String(localized: "settings.providers.app_id"),
@@ -120,7 +120,7 @@ private struct STTProviderCard: View {
             }
         }
         .padding(DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.ivory)
+        .background(DesignTokens.Colors.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.large))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.Radius.large)
@@ -147,7 +147,7 @@ private struct LLMProviderCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(name.capitalized)
                 .font(DesignTokens.Typography.settingsTitle)
-                .foregroundStyle(DesignTokens.Colors.nearBlack)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             SecureProviderField(
                 label: String(localized: "settings.providers.api_key"),
@@ -194,7 +194,7 @@ private struct LLMProviderCard: View {
             }
         }
         .padding(DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.ivory)
+        .background(DesignTokens.Colors.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.large))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.Radius.large)
@@ -214,7 +214,7 @@ private struct ProviderField: View {
         HStack {
             Text(label)
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .frame(width: 100, alignment: .leading)
             TextField(label, text: $text)
                 .textFieldStyle(.roundedBorder)
@@ -234,7 +234,7 @@ private struct SecureProviderField: View {
         HStack {
             Text(label)
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .frame(width: 100, alignment: .leading)
             SecureField(label, text: $text)
                 .textFieldStyle(.roundedBorder)

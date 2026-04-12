@@ -51,8 +51,10 @@
 		9BDC0A929C730C0AFB177E5A /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E15C9D93EE7A7441B9F9A5 /* HotkeyManagerTests.swift */; };
 		9CB1BC35EDD9256FD58E50B5 /* HistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D76820C5961833CFD33B2A3 /* HistoryManager.swift */; };
 		A9BAA6037587046F973E8A4F /* MockTextOutputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AB56F30380C62A4E0101325 /* MockTextOutputService.swift */; };
+		AA25ECF57C61DF7CCCE9DE3D /* KeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C318B2483FBE7B2C549C77 /* KeyRecorderView.swift */; };
 		AA7C4E25E38AD86725E59DA8 /* BubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6538FF07F20D06B48F3A48ED /* BubbleView.swift */; };
 		AD5E9DC89457F768579F4165 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C920413841B41B65D71DA3EC /* HistoryView.swift */; };
+		AE0CA19E50A41979F4C4F37E /* FrontmostAppTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D5C13A060E9E015FE12224C /* FrontmostAppTracker.swift */; };
 		B384DD6D435BE935EF06F01B /* ViewSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B40FC172BB6BBBBA77B8D6 /* ViewSmokeTests.swift */; };
 		B9B953E4E3B9D946D14C8B99 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801118FA91A2932F3084F496 /* FloatingPanel.swift */; };
 		BDEADE54EB0DA8AA7A01AAD4 /* MockAudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F6091EE8608698A85F9458 /* MockAudioRecorder.swift */; };
@@ -102,6 +104,7 @@
 		5529F6C3F0808988F469557D /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
 		5BA6CD5FFC2484C2E56FFD27 /* AppConfigCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigCompatibilityTests.swift; sourceTree = "<group>"; };
+		5D5C13A060E9E015FE12224C /* FrontmostAppTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontmostAppTracker.swift; sourceTree = "<group>"; };
 		5DF36D517735FCBC5CAEAC5E /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 		612EAC0BD2157C66D515C2DD /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
 		62E15C9D93EE7A7441B9F9A5 /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
@@ -121,6 +124,7 @@
 		9B596814261B0017D5DA229B /* ProvidersSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProvidersSettingsView.swift; sourceTree = "<group>"; };
 		9CF48B974B373441E0B5958F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9DF6F6AF79798A49E7A4953F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		A7C318B2483FBE7B2C549C77 /* KeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecorderView.swift; sourceTree = "<group>"; };
 		AD6ECAE7AE273CA981884EB6 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		B3293E4A3E37904545C16E7F /* PillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillView.swift; sourceTree = "<group>"; };
 		B43EC9D03DEC019D0FDCB57F /* HistoryRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRecordTests.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 			children = (
 				2E06F7B949681F710C632A30 /* AboutView.swift */,
 				5889E01F7A921D1033954B13 /* GeneralSettingsView.swift */,
+				A7C318B2483FBE7B2C549C77 /* KeyRecorderView.swift */,
 				9B596814261B0017D5DA229B /* ProvidersSettingsView.swift */,
 				49B79AB11AF3CFC91E68B0E2 /* ScenesSettingsView.swift */,
 				49B9C84AE3D51B84162809E7 /* SettingsView.swift */,
@@ -364,6 +369,7 @@
 			children = (
 				1AEA7423C6F9AC07F7F4305F /* AudioRecorder.swift */,
 				CF31F4458044DFDDE9BC8928 /* ConfigManager.swift */,
+				5D5C13A060E9E015FE12224C /* FrontmostAppTracker.swift */,
 				2D76820C5961833CFD33B2A3 /* HistoryManager.swift */,
 				4DC9E8168CECC20B6933BE1B /* HotkeyManager.swift */,
 				EC5141820B33262DE646676E /* PipelineEngine.swift */,
@@ -429,6 +435,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					1B808CA48447DAA2F01328ED = {
+						DevelopmentTeam = 5F36UWTDH5;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 9767DB0932EBB32004B29CE6 /* Build configuration list for PBXProject "Verbo" */;
@@ -480,6 +490,7 @@
 				B9B953E4E3B9D946D14C8B99 /* FloatingPanel.swift in Sources */,
 				8D3C66AA67926EFED1BEA4F9 /* FloatingPanelView.swift in Sources */,
 				479513BB54C6DB77DB75D9DD /* FloatingViewModel.swift in Sources */,
+				AE0CA19E50A41979F4C4F37E /* FrontmostAppTracker.swift in Sources */,
 				14EA1FABFBFD5CE4516F9E92 /* GeneralSettingsView.swift in Sources */,
 				9CB1BC35EDD9256FD58E50B5 /* HistoryManager.swift in Sources */,
 				1341563DAC236083E7B87F59 /* HistoryRecord.swift in Sources */,
@@ -488,6 +499,7 @@
 				BE49425E06C89BFAC049E48F /* HistoryWindow.swift in Sources */,
 				314107DE4B6407FBC4AD7420 /* HotkeyManager.swift in Sources */,
 				1E13A2BF6C74610D90CDCC55 /* IFlytekSTTAdapter.swift in Sources */,
+				AA25ECF57C61DF7CCCE9DE3D /* KeyRecorderView.swift in Sources */,
 				3008DC0634B3551906738701 /* LLMAdapter.swift in Sources */,
 				3DC95E9AD752F4A6E9BA590F /* Log.swift in Sources */,
 				881CC5C25C0E29E2615D43E9 /* OpenAILLMAdapter.swift in Sources */,
@@ -553,7 +565,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Verbo/Verbo.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 5F36UWTDH5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Verbo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -572,7 +587,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Verbo/Verbo.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 5F36UWTDH5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Verbo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

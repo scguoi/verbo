@@ -67,6 +67,31 @@ final class SettingsViewModel {
         isEditingScene = false
     }
 
+    /// Create a new scene with default values and return it so the UI can
+    /// immediately open it in the editor.
+    @discardableResult
+    func createScene() -> Scene {
+        let newId = "scene-\(Int(Date().timeIntervalSince1970))"
+        let newScene = Scene(
+            id: newId,
+            name: String(localized: "settings.scenes.new_scene_name"),
+            hotkey: SceneHotkey(),
+            pipeline: [PipelineStep(type: .stt, provider: "iflytek", lang: "zh")],
+            output: .simulate
+        )
+        let newConfig = AppConfig(
+            version: config.version,
+            defaultScene: config.defaultScene,
+            globalHotkey: config.globalHotkey,
+            scenes: config.scenes + [newScene],
+            providers: config.providers,
+            general: config.general
+        )
+        configManager.update(newConfig)
+        try? configManager.save()
+        return newScene
+    }
+
     func deleteScene(_ sceneId: String) {
         let newScenes = config.scenes.filter { $0.id != sceneId }
         let newDefault = config.defaultScene == sceneId

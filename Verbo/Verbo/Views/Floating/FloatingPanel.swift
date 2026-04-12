@@ -25,7 +25,9 @@ final class FloatingPanel: NSPanel {
         self.hidesOnDeactivate = false
     }
 
-    override var canBecomeKey: Bool { true }
+    // NEVER become key window — stealing focus breaks CGEvent keyboard input
+    // into the user's focused app (text gets sent to Finder fallback instead).
+    override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
     func positionNearBottomRight() {

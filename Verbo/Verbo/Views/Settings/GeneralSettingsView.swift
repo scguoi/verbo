@@ -11,55 +11,29 @@ struct GeneralSettingsView: View {
             // Global Hotkeys
             Section(String(localized: "settings.general.hotkeys_section")) {
                 LabeledContent(String(localized: "settings.general.toggle_record")) {
-                    TextField(
-                        String(localized: "settings.general.hotkey_placeholder"),
-                        text: Binding(
-                            get: { viewModel.config.globalHotkey.toggleRecord },
-                            set: { newValue in
-                                let updatedHotkey = GlobalHotkey(
-                                    toggleRecord: newValue,
-                                    pushToTalk: viewModel.config.globalHotkey.pushToTalk
-                                )
-                                let newConfig = AppConfig(
-                                    version: viewModel.config.version,
-                                    defaultScene: viewModel.config.defaultScene,
-                                    globalHotkey: updatedHotkey,
-                                    scenes: viewModel.config.scenes,
-                                    providers: viewModel.config.providers,
-                                    general: viewModel.config.general
-                                )
-                                viewModel.configManager.update(newConfig)
-                                try? viewModel.configManager.save()
-                            }
-                        )
+                    hotkeyField(
+                        rawValue: viewModel.config.globalHotkey.toggleRecord,
+                        onCommit: { newValue in
+                            let updatedHotkey = GlobalHotkey(
+                                toggleRecord: newValue,
+                                pushToTalk: viewModel.config.globalHotkey.pushToTalk
+                            )
+                            saveHotkey(updatedHotkey)
+                        }
                     )
-                    .frame(width: 200)
                 }
 
                 LabeledContent(String(localized: "settings.general.push_to_talk")) {
-                    TextField(
-                        String(localized: "settings.general.hotkey_placeholder"),
-                        text: Binding(
-                            get: { viewModel.config.globalHotkey.pushToTalk ?? "" },
-                            set: { newValue in
-                                let updatedHotkey = GlobalHotkey(
-                                    toggleRecord: viewModel.config.globalHotkey.toggleRecord,
-                                    pushToTalk: newValue.isEmpty ? nil : newValue
-                                )
-                                let newConfig = AppConfig(
-                                    version: viewModel.config.version,
-                                    defaultScene: viewModel.config.defaultScene,
-                                    globalHotkey: updatedHotkey,
-                                    scenes: viewModel.config.scenes,
-                                    providers: viewModel.config.providers,
-                                    general: viewModel.config.general
-                                )
-                                viewModel.configManager.update(newConfig)
-                                try? viewModel.configManager.save()
-                            }
-                        )
+                    hotkeyField(
+                        rawValue: viewModel.config.globalHotkey.pushToTalk ?? "",
+                        onCommit: { newValue in
+                            let updatedHotkey = GlobalHotkey(
+                                toggleRecord: viewModel.config.globalHotkey.toggleRecord,
+                                pushToTalk: newValue.isEmpty ? nil : newValue
+                            )
+                            saveHotkey(updatedHotkey)
+                        }
                     )
-                    .frame(width: 200)
                 }
             }
 
@@ -108,7 +82,7 @@ struct GeneralSettingsView: View {
                         .frame(width: 160)
                         Text(String(format: "%.1f s", viewModel.config.general.autoCollapseDelay))
                             .font(DesignTokens.Typography.settingsCaption)
-                            .foregroundStyle(DesignTokens.Colors.stoneGray)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
                             .frame(width: 40)
                     }
                 }
@@ -167,5 +141,46 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Hotkey field: shows formatted shortcut as a chip, with a small TextField
+    /// for editing the raw value underneath.
+    @ViewBuilder
+    private func hotkeyField(rawValue: String, onCommit: @escaping (String) -> Void) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            // Pretty formatted display chip
+            Text(rawValue.isEmpty ? "—" : HotkeyManager.displayString(for: rawValue))
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .frame(minWidth: 60, alignment: .center)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(DesignTokens.Colors.surfaceElevated)
+                )
+
+            // Raw editable field
+            TextField("", text: Binding(
+                get: { rawValue },
+                set: { onCommit($0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 11, design: .monospaced))
+            .frame(width: 200)
+        }
+    }
+
+    private func saveHotkey(_ hotkey: GlobalHotkey) {
+        let newConfig = AppConfig(
+            version: viewModel.config.version,
+            defaultScene: viewModel.config.defaultScene,
+            globalHotkey: hotkey,
+            scenes: viewModel.config.scenes,
+            providers: viewModel.config.providers,
+            general: viewModel.config.general
+        )
+        viewModel.configManager.update(newConfig)
+        try? viewModel.configManager.save()
     }
 }

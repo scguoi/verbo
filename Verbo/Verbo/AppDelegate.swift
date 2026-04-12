@@ -50,7 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 4. Setup status item
         setupStatusItem()
 
-        // 5. Register hotkeys
+        // 5. Request accessibility permission (needed for Fn key capture)
+        requestAccessibilityIfNeeded()
+
+        // 6. Register hotkeys
         registerHotkeys()
 
         hotkeyManager.startListening()
@@ -89,7 +92,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image?.isTemplate = true
         }
 
-        item.menu = buildStatusMenu()
+        let menu = buildStatusMenu()
+        menu.delegate = self
+        item.menu = menu
         self.statusItem = item
     }
 
@@ -107,6 +112,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.state = scene.id == configManager.config.defaultScene ? .on : .off
             menu.addItem(item)
         }
+
+        menu.addItem(.separator())
+
+        // Avg end-to-end latency (last 50 records with a measured value)
+        let latencyItem = NSMenuItem(
+            title: avgLatencyMenuTitle(),
+            action: nil,
+            keyEquivalent: ""
+        )
+        latencyItem.isEnabled = false
+        menu.addItem(latencyItem)
 
         menu.addItem(.separator())
 
@@ -227,6 +243,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Accessibility Permission
+
+    private func requestAccessibilityIfNeeded() {
+        let trusted = AXIsProcessTrusted()
+        if !trusted {
+            let key = "AXTrustedCheckOptionPrompt" as CFString
+            let options = [key: true] as CFDictionary
+            AXIsProcessTrustedWithOptions(options)
+            Log.hotkey.info("Accessibility permission not granted — prompting user")
+        } else {
+            Log.hotkey.info("Accessibility permission granted")
+        }
+    }
+
     // MARK: - Actions
 
     @objc private func switchScene(_ sender: NSMenuItem) {
@@ -247,5 +277,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showSettings() {
         let vm = SettingsViewModel(configManager: configManager)
         settingsWindow.show(viewModel: vm)
+    }
+
+    // MARK: - Avg Latency
+
+    /// Compute the menu title for the "avg end-to-end latency" item using
+    /// the last 50 records that have a measured latency value.
+    private func avgLatencyMenuTitle() -> String {
+        let samples = historyManager.records
+            .prefix(50)
+            .compactMap { $0.endToEndLatencyMs }
+        guard !samples.isEmpty else {
+            return String(localized: "menu.avg_latency.empty")
+        }
+        let avg = samples.reduce(0, +) / samples.count
+        let format = String(localized: "menu.avg_latency.format")
+        return String.localizedStringWithFormat(format, avg, samples.count)
+    }
+}
+
+// MARK: - NSMenuDelegate
+
+extension AppDelegate: NSMenuDelegate {
+    /// Rebuild the status-bar menu each time it opens so that dynamic items
+    /// (avg latency, scene checkmarks) stay fresh.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === statusItem?.menu else { return }
+        menu.removeAllItems()
+        let rebuilt = buildStatusMenu()
+        for item in rebuilt.items {
+            rebuilt.removeItem(item)
+            menu.addItem(item)
+        }
     }
 }

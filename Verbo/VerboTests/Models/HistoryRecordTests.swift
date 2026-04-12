@@ -96,6 +96,49 @@ struct HistoryRecordTests {
         #expect(record.outputStatus == .copied)
     }
 
+    @Test("HistoryRecord decodes legacy JSON without endToEndLatencyMs field")
+    func legacyJSONDecode() throws {
+        let legacyJSON = """
+        {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "timestamp": 1700000000,
+            "sceneId": "dictate",
+            "sceneName": "语音输入",
+            "originalText": "hi",
+            "finalText": "hi",
+            "outputStatus": "inserted",
+            "pipelineSteps": ["stt:iflytek"]
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        let record = try decoder.decode(HistoryRecord.self, from: legacyJSON)
+        #expect(record.endToEndLatencyMs == nil)
+        #expect(record.finalText == "hi")
+    }
+
+    @Test("HistoryRecord with latency round-trips through JSON")
+    func latencyRoundTrip() throws {
+        let record = HistoryRecord(
+            id: UUID(),
+            timestamp: Date(timeIntervalSince1970: 1700000000),
+            sceneId: "dictate",
+            sceneName: "语音输入",
+            originalText: "hi",
+            finalText: "hi",
+            outputStatus: .inserted,
+            pipelineSteps: ["stt:iflytek"],
+            endToEndLatencyMs: 1234
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(record)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(HistoryRecord.self, from: data)
+        #expect(decoded.endToEndLatencyMs == 1234)
+    }
+
     @Test("HistoryRecord with failed status")
     func failedStatus() {
         let record = HistoryRecord(

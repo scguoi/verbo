@@ -21,7 +21,7 @@ struct HistoryView: View {
     private var searchBar: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(DesignTokens.Colors.stoneGray)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
                 .font(.system(size: 14))
 
             TextField(String(localized: "history.search_placeholder"), text: $viewModel.searchQuery)
@@ -33,14 +33,14 @@ struct HistoryView: View {
                     viewModel.searchQuery = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(DesignTokens.Colors.stoneGray)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
                 }
                 .buttonStyle(.borderless)
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.sm)
-        .background(DesignTokens.Colors.ivory)
+        .background(DesignTokens.Colors.surfaceCard)
     }
 
     // MARK: - Filter Bar
@@ -67,7 +67,7 @@ struct HistoryView: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.xs)
-        .background(DesignTokens.Colors.parchment)
+        .background(DesignTokens.Colors.surfaceCard)
     }
 
     // MARK: - Records List
@@ -92,7 +92,7 @@ struct HistoryView: View {
                         } header: {
                             Text(group.label)
                                 .font(DesignTokens.Typography.settingsTitle)
-                                .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
                         }
                     }
                 }
@@ -111,7 +111,7 @@ struct HistoryView: View {
                 .foregroundStyle(DesignTokens.Colors.warmSilver)
             Text(String(localized: "history.empty"))
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.stoneGray)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -149,12 +149,19 @@ private struct HistoryRowView: View {
         return formatter.string(from: record.timestamp)
     }
 
+    static func formatLatency(_ ms: Int) -> String {
+        if ms < 1000 {
+            return "\(ms) ms"
+        }
+        return String(format: "%.1f s", Double(ms) / 1000.0)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             // Main text
             Text(record.finalText)
                 .font(DesignTokens.Typography.settingsBody)
-                .foregroundStyle(DesignTokens.Colors.nearBlack)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -165,7 +172,7 @@ private struct HistoryRowView: View {
                     content: {
                         Text(record.originalText)
                             .font(DesignTokens.Typography.settingsCaption)
-                            .foregroundStyle(DesignTokens.Colors.oliveGray)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .padding(.vertical, DesignTokens.Spacing.xs)
                     },
                     label: {
@@ -182,8 +189,8 @@ private struct HistoryRowView: View {
                     .font(DesignTokens.Typography.settingsCaption)
                     .padding(.horizontal, DesignTokens.Spacing.xs)
                     .padding(.vertical, 2)
-                    .background(DesignTokens.Colors.warmSand.opacity(0.6))
-                    .foregroundStyle(DesignTokens.Colors.charcoalWarm)
+                    .background(DesignTokens.Colors.surfaceElevated.opacity(0.6))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .clipShape(Capsule())
 
                 HStack(spacing: DesignTokens.Spacing.xxs) {
@@ -195,11 +202,21 @@ private struct HistoryRowView: View {
                         .foregroundStyle(statusColor)
                 }
 
+                if let latencyMs = record.endToEndLatencyMs {
+                    HStack(spacing: 2) {
+                        Image(systemName: "stopwatch")
+                            .font(.system(size: 9))
+                        Text(Self.formatLatency(latencyMs))
+                            .font(DesignTokens.Typography.settingsCaption.monospacedDigit())
+                    }
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                }
+
                 Spacer()
 
                 Text(formattedTime)
                     .font(DesignTokens.Typography.settingsCaption)
-                    .foregroundStyle(DesignTokens.Colors.stoneGray)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
 
                 if isHovering {
                     Button {
