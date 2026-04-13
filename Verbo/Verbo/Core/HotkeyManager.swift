@@ -93,20 +93,33 @@ final class HotkeyTapState: @unchecked Sendable {
         }
 
         // Modifier-only keys (right cmd, etc.) — do NOT block (user may still use them normally)
+        var matched = false
         for binding in modifierOnlyBindings where binding.keyCode == keyCode {
+            matched = true
             let isDown = (flagsRaw & binding.flag) != 0
             let wasDown = modifierPressed[keyCode] ?? false
+            writeDebug("[modOnly] match keyCode=\(keyCode) flags=\(String(flagsRaw, radix: 16)) bindingFlag=\(String(binding.flag, radix: 16)) isDown=\(isDown) wasDown=\(wasDown)")
             if isDown != wasDown {
                 modifierPressed[keyCode] = isDown
                 if isDown {
+                    writeDebug("[modOnly] firing onPress for keyCode=\(keyCode)")
                     binding.onPress()
                 } else {
                     binding.onRelease?()
                 }
             }
         }
+        if !matched && !modifierOnlyBindings.isEmpty {
+            let registered = modifierOnlyBindings.map { $0.keyCode }
+            writeDebug("[modOnly] unmatched keyCode=\(keyCode) flags=\(String(flagsRaw, radix: 16)) registered=\(registered)")
+        }
 
         return false
+    }
+
+    /// Append a timestamped line to ~/.verbo/debug.log from any thread.
+    private func writeDebug(_ msg: String) {
+        DebugLog.write(msg)
     }
 }
 
@@ -189,7 +202,9 @@ final class HotkeyManager {
                 let onPressBox = UnsafeSendableBox(binding.onPress)
                 let onReleaseBox = binding.onRelease.map { UnsafeSendableBox($0) }
                 let pressClosure: @Sendable () -> Void = {
+                    DebugLog.write("[hotkey] onPress dispatch to main")
                     DispatchQueue.main.async {
+                        DebugLog.write("[hotkey] onPress on main, invoking callback")
                         MainActor.assumeIsolated { onPressBox.value() }
                     }
                 }
@@ -405,12 +420,7 @@ final class HotkeyManager {
     }
 
     private nonisolated func debugLog(_ msg: String) {
-        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
-        let path = dir.appendingPathComponent("debug.log")
-        let line = "\(msg)\n"
-        if let data = line.data(using: .utf8), let fh = try? FileHandle(forWritingTo: path) {
-            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
-        }
+        DebugLog.write(msg)
     }
 
     private func stopCGEventTap() {

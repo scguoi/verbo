@@ -33,6 +33,9 @@ actor AudioRecorder {
     /// Installs a tap on the input node, converts audio to 16kHz mono Int16,
     /// and yields chunks via an AsyncStream when enough bytes accumulate.
     func start() -> AsyncStream<Data> {
+        let t0 = DispatchTime.now().uptimeNanoseconds
+        DebugLog.write("[audio] start() enter")
+
         let stream = AsyncStream<Data> { continuation in
             self.streamContinuation = continuation
         }
@@ -46,6 +49,7 @@ actor AudioRecorder {
         }
 
         let inputFormat = inputNode.outputFormat(forBus: 0)
+        DebugLog.write("[audio] format obtained t+\(Self.ms(t0))ms")
 
         let targetFormat = Self.targetFormat
 
@@ -91,13 +95,19 @@ actor AudioRecorder {
         }
 
         do {
+            DebugLog.write("[audio] engine.start() begin t+\(Self.ms(t0))ms")
             try engine.start()
+            DebugLog.write("[audio] engine.start() done  t+\(Self.ms(t0))ms")
             isRecording = true
         } catch {
             streamContinuation?.finish()
         }
 
         return stream
+    }
+
+    private static func ms(_ startNs: UInt64) -> Int {
+        Int((DispatchTime.now().uptimeNanoseconds &- startNs) / 1_000_000)
     }
 
     // MARK: - Stop Recording

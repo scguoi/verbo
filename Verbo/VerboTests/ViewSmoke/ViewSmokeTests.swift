@@ -95,56 +95,6 @@ struct ViewSmokeTests {
         _ = view.body
     }
 
-    // MARK: - BubbleView Tests
-
-    @Test("BubbleView body evaluates without crash in transcribing state")
-    func bubbleViewTranscribing() {
-        let view = BubbleView(
-            state: .transcribing(partial: "转录中的文字"),
-            lastResult: nil,
-            lastSource: nil,
-            onCopy: {},
-            onRetry: {}
-        )
-        _ = view.body
-    }
-
-    @Test("BubbleView body evaluates without crash in processing state")
-    func bubbleViewProcessing() {
-        let view = BubbleView(
-            state: .processing(source: "raw text", partial: "polished text"),
-            lastResult: nil,
-            lastSource: nil,
-            onCopy: {},
-            onRetry: {}
-        )
-        _ = view.body
-    }
-
-    @Test("BubbleView body evaluates without crash in done state")
-    func bubbleViewDone() {
-        let view = BubbleView(
-            state: .done(result: "最终结果文字", source: nil),
-            lastResult: nil,
-            lastSource: nil,
-            onCopy: {},
-            onRetry: {}
-        )
-        _ = view.body
-    }
-
-    @Test("BubbleView body evaluates without crash in error state")
-    func bubbleViewError() {
-        let view = BubbleView(
-            state: .error(message: "Connection failed"),
-            lastResult: nil,
-            lastSource: nil,
-            onCopy: {},
-            onRetry: {}
-        )
-        _ = view.body
-    }
-
     // MARK: - WaveformView Tests
 
     @Test("WaveformView body evaluates without crash with normal levels")

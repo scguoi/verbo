@@ -27,7 +27,6 @@ struct FloatingViewModelTests {
         #expect(vm.isRecording == false)
         #expect(vm.isTranscribing == false)
         #expect(vm.isActive == false)
-        #expect(vm.isExpanded == false)
         #expect(vm.lastResult == nil)
     }
 
@@ -40,16 +39,6 @@ struct FloatingViewModelTests {
         // Yield to allow the async Task inside startRecording() to execute
         await Task.yield()
         #expect(recorder.startCallCount == 1)
-    }
-
-    @Test("pillTapped in idle when expanded collapses without starting recording")
-    func pillTappedIdleExpanded() {
-        let (vm, recorder, _) = makeViewModel()
-        vm.isExpanded = true
-        vm.pillTapped()
-        #expect(vm.isExpanded == false)
-        #expect(vm.isIdle == true)
-        #expect(recorder.startCallCount == 0)
     }
 
     @Test("pillTapped in .recording calls recorder stop")
@@ -72,21 +61,18 @@ struct FloatingViewModelTests {
         #expect(recorder.stopCallCount == 1)
     }
 
-    @Test("pillTapped in .done dismisses: isExpanded=false, state=idle")
+    @Test("pillTapped in .done dismisses to idle")
     func pillTappedDone() {
         let (vm, _, _) = makeViewModel()
         vm.pipelineState = .done(result: "result", source: nil)
-        vm.isExpanded = true
         vm.pillTapped()
-        #expect(vm.isExpanded == false)
         #expect(vm.isIdle == true)
     }
 
-    @Test("pillTapped in .error dismisses: state=idle")
+    @Test("pillTapped in .error dismisses to idle")
     func pillTappedError() {
         let (vm, _, _) = makeViewModel()
         vm.pipelineState = .error(message: "oops")
-        vm.isExpanded = true
         vm.pillTapped()
         #expect(vm.isIdle == true)
     }
@@ -148,42 +134,6 @@ struct FloatingViewModelTests {
         #expect(vm.isActive == false)
     }
 
-    // MARK: - shouldShowBubble
-
-    @Test("shouldShowBubble is false in idle without lastResult")
-    func shouldShowBubbleIdleNoResult() {
-        let (vm, _, _) = makeViewModel()
-        #expect(vm.shouldShowBubble == false)
-    }
-
-    @Test("shouldShowBubble is false in .transcribing with empty partial")
-    func shouldShowBubbleTranscribingEmpty() {
-        let (vm, _, _) = makeViewModel()
-        vm.pipelineState = .transcribing(partial: "")
-        #expect(vm.shouldShowBubble == false)
-    }
-
-    @Test("shouldShowBubble is true in .transcribing with non-empty partial")
-    func shouldShowBubbleTranscribingWithText() {
-        let (vm, _, _) = makeViewModel()
-        vm.pipelineState = .transcribing(partial: "hello")
-        #expect(vm.shouldShowBubble == true)
-    }
-
-    @Test("shouldShowBubble is true in .done")
-    func shouldShowBubbleDone() {
-        let (vm, _, _) = makeViewModel()
-        vm.pipelineState = .done(result: "result", source: nil)
-        #expect(vm.shouldShowBubble == true)
-    }
-
-    @Test("shouldShowBubble is true in .error")
-    func shouldShowBubbleError() {
-        let (vm, _, _) = makeViewModel()
-        vm.pipelineState = .error(message: "err")
-        #expect(vm.shouldShowBubble == true)
-    }
-
     // MARK: - pillDotColor
 
     @Test("pillDotColor is stoneGray in idle")
@@ -224,18 +174,16 @@ struct FloatingViewModelTests {
 
     // MARK: - startRecording resets state
 
-    @Test("startRecording resets lastResult, lastSource, isExpanded, recordingDuration")
+    @Test("startRecording resets lastResult, lastSource, recordingDuration")
     func startRecordingResetsState() async {
         let (vm, _, _) = makeViewModel()
         vm.lastResult = "previous result"
         vm.lastSource = "previous source"
-        vm.isExpanded = true
         vm.recordingDuration = 99.0
         vm.startRecording()
         // State is reset synchronously before the async Task launches
         #expect(vm.lastResult == nil)
         #expect(vm.lastSource == nil)
-        #expect(vm.isExpanded == false)
         #expect(vm.recordingDuration == 0)
     }
 }

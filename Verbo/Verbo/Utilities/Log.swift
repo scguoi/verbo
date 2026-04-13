@@ -1,6 +1,42 @@
 import os.log
 import Foundation
 
+/// Always-on timestamped debug log at `~/.verbo/debug.log`. Used for
+/// cross-component latency tracing where os.log's out-of-process delivery
+/// would obscure timing. Thread-safe via an internal serial queue.
+enum DebugLog {
+    private static let queue = DispatchQueue(label: "com.verbo.debug-log")
+    nonisolated(unsafe) private static var cachedHandle: FileHandle?
+    nonisolated(unsafe) private static var didSetup = false
+
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss.SSS"
+        return f
+    }()
+
+    static func write(_ message: String) {
+        let stamp = formatter.string(from: Date())
+        let line = "\(stamp) \(message)\n"
+        queue.async {
+            if !didSetup {
+                let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".verbo")
+                try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                let path = dir.appendingPathComponent("debug.log")
+                if !FileManager.default.fileExists(atPath: path.path) {
+                    FileManager.default.createFile(atPath: path.path, contents: nil)
+                }
+                cachedHandle = try? FileHandle(forWritingTo: path)
+                cachedHandle?.seekToEndOfFile()
+                didSetup = true
+            }
+            if let data = line.data(using: .utf8) {
+                cachedHandle?.write(data)
+            }
+        }
+    }
+}
+
 enum Log {
     private static let subsystem = "com.verbo.app"
 

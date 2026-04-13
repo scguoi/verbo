@@ -20,6 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
 
+    /// IDs of scene hotkeys currently registered with `hotkeyManager`.
+    /// Tracked so we can unregister them all before re-registering when the
+    /// scene list / hotkey bindings change.
+    private var registeredSceneHotkeyIds: Set<String> = []
+
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -39,11 +44,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         floatingViewModel.configManager = configManager
         floatingViewModel.historyManager = historyManager
 
-        if let defaultScene = configManager.defaultScene() {
-            floatingViewModel.currentSceneName = defaultScene.name
-            floatingViewModel.currentHotkeyHint = HotkeyManager.displayString(for: defaultScene.hotkey.toggleRecord ?? "")
-        }
-
         // 3. Setup floating panel
         setupFloatingPanel()
 
@@ -53,8 +53,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 5. Request accessibility permission (needed for Fn key capture)
         requestAccessibilityIfNeeded()
 
-        // 6. Register hotkeys
+        // 6. Register hotkeys + observe config changes so edits take effect live
         registerHotkeys()
+        observeConfigChanges()
 
         hotkeyManager.startListening()
     }
@@ -155,12 +156,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         versionItem.isEnabled = false
         menu.addItem(versionItem)
 
-        // Quit
+        // Quit — use our own selector so macOS doesn't auto-attach an
+        // SF Symbol (it does so for system actions like terminate:).
         let quitItem = NSMenuItem(
             title: String(localized: "menu.quit"),
-            action: #selector(NSApplication.terminate(_:)),
+            action: #selector(quitApp),
             keyEquivalent: "q"
         )
+        quitItem.target = self
         quitItem.keyEquivalentModifierMask = .command
         menu.addItem(quitItem)
 
@@ -170,63 +173,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Hotkey Registration
 
     private func registerHotkeys() {
+        // Drop any previously-registered scene hotkeys so renames / rebinds /
+        // deletions don't leave stale entries behind.
+        for id in registeredSceneHotkeyIds {
+            hotkeyManager.unregister(id: id)
+        }
+        registeredSceneHotkeyIds.removeAll()
+
         let config = configManager.config
-
-        // Global toggle hotkey
-        hotkeyManager.register(id: "global.toggle", shortcut: config.globalHotkey.toggleRecord) {
-            self.floatingViewModel.toggleRecording()
-        }
-
-        // Global PTT hotkey
-        if let ptt = config.globalHotkey.pushToTalk {
-            hotkeyManager.register(
-                id: "global.ptt",
-                shortcut: ptt,
-                onPress: { self.floatingViewModel.startRecording() },
-                onRelease: { self.floatingViewModel.stopRecording() }
-            )
-        }
 
         // Per-scene hotkeys
         for scene in config.scenes {
             let sceneId = scene.id
-            let sceneName = scene.name
-            let sceneHotkeyHint = scene.hotkey.toggleRecord ?? ""
 
             if let toggleHotkey = scene.hotkey.toggleRecord {
-                hotkeyManager.register(id: "scene.\(sceneId).toggle", shortcut: toggleHotkey) {
-                    self.switchToScene(id: sceneId, name: sceneName, hotkeyHint: sceneHotkeyHint)
+                let bindingId = "scene.\(sceneId).toggle"
+                hotkeyManager.register(id: bindingId, shortcut: toggleHotkey) {
+                    self.switchToScene(id: sceneId)
                     self.floatingViewModel.toggleRecording()
                 }
-            }
-
-            if let pttHotkey = scene.hotkey.pushToTalk {
-                hotkeyManager.register(
-                    id: "scene.\(sceneId).ptt",
-                    shortcut: pttHotkey,
-                    onPress: {
-                        self.switchToScene(id: sceneId, name: sceneName, hotkeyHint: sceneHotkeyHint)
-                        self.floatingViewModel.startRecording()
-                    },
-                    onRelease: { self.floatingViewModel.stopRecording() }
-                )
+                registeredSceneHotkeyIds.insert(bindingId)
             }
         }
     }
 
-    private func switchToScene(id: String, name: String, hotkeyHint: String) {
+    /// Subscribe to `configManager.config` changes via `withObservationTracking`
+    /// so any settings edit (hotkey rebind, scene add/delete, default change)
+    /// re-registers hotkeys and rebuilds the status menu immediately.
+    /// `withObservationTracking` is one-shot, so we re-arm it from the callback.
+    private func observeConfigChanges() {
+        withObservationTracking {
+            _ = configManager.config
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.registerHotkeys()
+                self.statusItem?.menu = self.buildStatusMenu()
+                self.observeConfigChanges()  // re-arm
+            }
+        }
+    }
+
+    private func switchToScene(id: String) {
+        // Fast path: scene is already default — skip the full config update
+        // cycle (which would trigger observeConfigChanges → re-register all
+        // hotkeys + rebuild status menu) and save ~tens of ms on the hot
+        // "press hotkey to record" path.
+        guard configManager.config.defaultScene != id else { return }
+
         let newConfig = AppConfig(
             version: configManager.config.version,
             defaultScene: id,
-            globalHotkey: configManager.config.globalHotkey,
             scenes: configManager.config.scenes,
             providers: configManager.config.providers,
             general: configManager.config.general
         )
         configManager.update(newConfig)
-        floatingViewModel.currentSceneName = name
-        floatingViewModel.currentHotkeyHint = HotkeyManager.displayString(for: hotkeyHint)
-        statusItem?.menu = buildStatusMenu()
+        // No manual ViewModel/menu update needed — observeConfigChanges()
+        // picks this up and re-renders the pill + rebuilds the menu.
     }
 
     // MARK: - Language
@@ -260,13 +264,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Actions
 
     @objc private func switchScene(_ sender: NSMenuItem) {
-        guard let sceneId = sender.representedObject as? String,
-              let scene = configManager.getScene(sceneId) else { return }
-        switchToScene(
-            id: sceneId,
-            name: scene.name,
-            hotkeyHint: scene.hotkey.toggleRecord ?? ""
-        )
+        guard let sceneId = sender.representedObject as? String else { return }
+        switchToScene(id: sceneId)
     }
 
     @objc private func showHistory() {
@@ -277,6 +276,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showSettings() {
         let vm = SettingsViewModel(configManager: configManager)
         settingsWindow.show(viewModel: vm)
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 
     // MARK: - Avg Latency

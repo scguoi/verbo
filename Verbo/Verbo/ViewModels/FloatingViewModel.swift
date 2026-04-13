@@ -9,24 +9,10 @@ final class FloatingViewModel {
     // MARK: - State
 
     var pipelineState: PipelineState = .idle
-    var currentSceneName: String = "Verbo"
-    var currentHotkeyHint: String = "Alt+D"
     var recordingDuration: TimeInterval = 0
     var audioLevels: [Float] = Array(repeating: 0, count: 20)
-    var isExpanded: Bool = false
     var lastResult: String?
     var lastSource: String?
-    var toastHovered: Bool = false {
-        didSet {
-            if toastHovered {
-                // Mouse entered toast — cancel auto-collapse
-                collapseTask?.cancel()
-            } else if pipelineState.isDone {
-                // Mouse left toast — restart collapse timer
-                scheduleCollapse()
-            }
-        }
-    }
 
     // MARK: - Dependencies (set externally)
 
@@ -68,6 +54,18 @@ final class FloatingViewModel {
 
     var isIdle: Bool { pipelineState.isIdle }
     var isRecording: Bool { pipelineState.isRecording }
+
+    /// Derived from `configManager.config` so the pill always reflects the
+    /// latest scene + hotkey after settings edits. Because `ConfigManager`
+    /// is `@Observable`, SwiftUI re-renders any view that reads these when
+    /// the config changes.
+    var currentSceneName: String {
+        configManager?.defaultScene()?.name ?? "Verbo"
+    }
+    var currentHotkeyHint: String {
+        HotkeyManager.displayString(for: configManager?.defaultScene()?.hotkey.toggleRecord ?? "")
+    }
+
     var isTranscribing: Bool {
         if case .transcribing = pipelineState { return true }
         return false
@@ -80,19 +78,6 @@ final class FloatingViewModel {
         case .transcribing, .processing: DesignTokens.Colors.coral
         case .done: Color.green
         case .error: DesignTokens.Colors.errorCrimson
-        }
-    }
-
-    var shouldShowBubble: Bool {
-        switch pipelineState {
-        case .idle, .recording:
-            return isExpanded && lastResult != nil
-        case .transcribing(let partial):
-            return !partial.isEmpty
-        case .processing(_, let partial):
-            return !partial.isEmpty
-        case .done, .error:
-            return true
         }
     }
 
@@ -113,6 +98,9 @@ final class FloatingViewModel {
     func startRecording() {
         guard isIdle || pipelineState.isDone || pipelineState.isError else { return }
 
+        let t0 = DispatchTime.now().uptimeNanoseconds
+        fileLog("[start] enter startRecording")
+
         // Cancel any lingering previous pipeline
         pipelineTask?.cancel()
         pipelineTask = nil
@@ -124,21 +112,29 @@ final class FloatingViewModel {
         Log.ui.info("Captured target app: \(self.targetApplication?.bundleIdentifier ?? "nil", privacy: .public)")
 
         collapseTask?.cancel()
-        isExpanded = false
         lastResult = nil
         lastSource = nil
         stopRequestedAt = nil
         pipelineState = .recording
         recordingDuration = 0
 
+        fileLog("[start] pipelineState=.recording t+\(elapsedMs(since: t0))ms")
+
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.recordingDuration += 0.1 }
         }
 
         Task {
+            fileLog("[start] Task begin t+\(elapsedMs(since: t0))ms")
             let audioStream = await audioRecorder.start()
+            fileLog("[start] audioRecorder.start() returned t+\(elapsedMs(since: t0))ms")
             await runPipeline(audioStream: audioStream)
         }
+    }
+
+    /// Milliseconds elapsed since an uptime-nanosecond anchor.
+    nonisolated private func elapsedMs(since startNs: UInt64) -> Int {
+        Int((DispatchTime.now().uptimeNanoseconds &- startNs) / 1_000_000)
     }
 
     func stopRecording() {
@@ -158,20 +154,14 @@ final class FloatingViewModel {
     func pillTapped() {
         switch pipelineState {
         case .idle:
-            if isExpanded {
-                isExpanded = false
-            } else {
-                startRecording()
-            }
+            startRecording()
         case .recording, .transcribing:
             // Stop recording and send audio for processing
             stopRecording()
         case .done:
             collapseTask?.cancel()
-            isExpanded = false
             pipelineState = .idle
         case .error:
-            isExpanded = false
             pipelineState = .idle
         default:
             break
@@ -240,22 +230,30 @@ final class FloatingViewModel {
                         let latencyMs: Int? = stopRequestedAt.map {
                             Int(Date().timeIntervalSince($0) * 1000)
                         }
+                        fileLog("[pipeline.done] resultLen=\(result.count) latencyMs=\(latencyMs ?? -1)")
 
                         lastResult = result
                         lastSource = source
-                        isExpanded = true
 
                         // Restore focus to the app that was frontmost when recording started.
-                        // Safety net: CGEvent keyboard input goes to the current frontmost app,
-                        // so we need to ensure it's the user's original target.
+                        // CGEvent keyboard input goes to whatever is frontmost *at the moment
+                        // of the event*, so we have to make sure the target app is actually
+                        // active before typing. A fixed-duration sleep is not enough for
+                        // long recordings, because macOS may have put the target into a
+                        // background state that takes 100–500 ms to wake up.
+                        let frontmostBefore = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
+                        fileLog("[pipeline.done] target=\(targetApplication?.bundleIdentifier ?? "nil") frontmost=\(frontmostBefore)")
                         if let target = targetApplication,
                            target.bundleIdentifier != Bundle.main.bundleIdentifier {
-                            target.activate()
-                            // Give macOS a moment to process the activation
-                            try? await Task.sleep(for: .milliseconds(50))
+                            await activateAndWait(for: target, timeout: .milliseconds(600))
+                        } else {
+                            fileLog("[pipeline.done] SKIP activation (target nil or self)")
                         }
 
+                        let frontmostBeforeOutput = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
+                        fileLog("[pipeline.done] outputting mode=\(outputMode) frontmost=\(frontmostBeforeOutput)")
                         let status = await textOutputService.output(text: result, mode: outputMode)
+                        fileLog("[pipeline.done] status=\(status)")
                         let record = HistoryRecord(
                             id: UUID(),
                             timestamp: Date(),
@@ -278,6 +276,41 @@ final class FloatingViewModel {
         }
     }
 
+    /// Activate the target app and poll until `NSWorkspace.frontmostApplication`
+    /// actually matches (or until timeout). `NSRunningApplication.activate()` is
+    /// async — on long recordings the previous frontmost app may have been
+    /// demoted to background state and takes well over 50 ms to come back.
+    private func activateAndWait(
+        for target: NSRunningApplication,
+        timeout: Duration
+    ) async {
+        let targetBundle = target.bundleIdentifier ?? "?"
+        fileLog("[activate] start target=\(targetBundle) active=\(target.isActive) terminated=\(target.isTerminated)")
+        target.activate()
+
+        let start = Date()
+        let timeoutSecs = Double(timeout.components.seconds) +
+            Double(timeout.components.attoseconds) * 1e-18
+        while Date().timeIntervalSince(start) < timeoutSecs {
+            let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            if frontmost == target.bundleIdentifier {
+                let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
+                fileLog("[activate] ok target=\(targetBundle) elapsedMs=\(elapsedMs)")
+                try? await Task.sleep(for: .milliseconds(20))
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(15))
+        }
+        let frontmostBundle = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
+        fileLog("[activate] TIMEOUT target=\(targetBundle) frontmost=\(frontmostBundle) terminated=\(target.isTerminated)")
+    }
+
+    /// Append a timestamped line to ~/.verbo/debug.log.
+    /// Format: `HH:mm:ss.SSS msg` — lets us correlate stages across components.
+    private nonisolated func fileLog(_ msg: String) {
+        DebugLog.write(msg)
+    }
+
     private func scheduleCollapse() {
         let delay = configManager?.config.general.autoCollapseDelay ?? 1.5
         // Negative = never collapse. Zero = collapse immediately.
@@ -286,13 +319,12 @@ final class FloatingViewModel {
             if delay > 0 {
                 try? await Task.sleep(for: .seconds(delay))
             }
-            if !Task.isCancelled && !toastHovered {
+            if !Task.isCancelled {
                 if configManager?.config.general.copyOnDismiss == true,
                    let result = lastResult {
                     textOutputService.writeToClipboard(result)
                 }
                 pipelineState = .idle
-                isExpanded = false
             }
         }
     }
