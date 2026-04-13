@@ -69,9 +69,9 @@ enum DesignTokens {
         static let captionFont = Font.system(.caption, design: .default)
         static let monoFont = Font.system(.body, design: .monospaced)
         // Pill
-        static let pillText = Font.system(size: 13, weight: .medium)
-        static let pillTimer = Font.system(size: 12, weight: .medium, design: .monospaced)
-        static let pillHotkey = Font.system(size: 11, weight: .regular)
+        static let pillText = Font.system(size: 16, weight: .semibold)
+        static let pillTimer = Font.system(size: 14, weight: .medium, design: .monospaced)
+        static let pillHotkey = Font.system(size: 12, weight: .regular)
         // Bubble
         static let bubbleText = Font.system(size: 14, weight: .regular)
         static let bubbleStatus = Font.system(size: 12, weight: .medium)
@@ -111,9 +111,9 @@ enum DesignTokens {
     }
 
     enum Pill {
-        static let height: CGFloat = 36
-        static let minWidth: CGFloat = 150
-        static let dotSize: CGFloat = 8
+        static let height: CGFloat = 56
+        static let width: CGFloat = 260
+        static let dotSize: CGFloat = 12
     }
 }
 

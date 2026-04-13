@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 6. Register hotkeys + observe config changes so edits take effect live
         registerHotkeys()
         observeConfigChanges()
+        observePipelineState()
 
         hotkeyManager.startListening()
     }
@@ -74,9 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = .clear
 
+        // Panel is created but NOT ordered front — it stays hidden until the
+        // pipeline enters a non-idle state (see observePipelineState).
         let panel = FloatingPanel(contentView: hosting)
-        panel.positionNearBottomRight()
-        panel.makeKeyAndOrderFront(nil)
         self.floatingPanel = panel
     }
 
@@ -194,6 +195,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 registeredSceneHotkeyIds.insert(bindingId)
             }
+        }
+    }
+
+    /// Subscribe to `floatingViewModel.pipelineState` so the floating panel
+    /// is only shown while the pipeline is active. `.idle` → hidden; anything
+    /// else (recording / transcribing / processing / done / error) → visible
+    /// and repositioned at the bottom-center of the current screen.
+    /// `withObservationTracking` is one-shot — re-arm from the callback.
+    private func observePipelineState() {
+        withObservationTracking {
+            _ = floatingViewModel.pipelineState
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.updateFloatingPanelVisibility()
+                self.observePipelineState()  // re-arm
+            }
+        }
+    }
+
+    private func updateFloatingPanelVisibility() {
+        if floatingViewModel.pipelineState.isIdle {
+            floatingPanel?.hide()
+        } else {
+            floatingPanel?.show()
         }
     }
 

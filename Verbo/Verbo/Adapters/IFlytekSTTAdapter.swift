@@ -287,8 +287,10 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                 // Stream audio chunks. seq starts at 1 and increments per frame.
                 var seq = 1
                 var isFirst = true
+                var framesReceivedFromStream = 0
 
                 for await audioChunk in audioStream {
+                    framesReceivedFromStream += 1
                     let audioBase64 = audioChunk.base64EncodedString()
                     let frameStatus = isFirst ? 0 : 1
                     let frame = self.buildFrame(
@@ -313,6 +315,8 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                     }
                     seq += 1
                 }
+
+                DebugLog.write("[stt] audioStream drained: framesReceived=\(framesReceivedFromStream) lastSeq=\(seq - 1)")
 
                 // Last frame (status=2, empty audio).
                 let lastFrame = self.buildFrame(

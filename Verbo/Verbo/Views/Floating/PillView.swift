@@ -15,19 +15,21 @@ struct PillView: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 statusDot
                 content
             }
-            .frame(width: 150, height: DesignTokens.Pill.height)
+            .frame(width: DesignTokens.Pill.width, height: DesignTokens.Pill.height)
             .background(
                 RoundedRectangle(cornerRadius: DesignTokens.Radius.pill)
                     .fill(DesignTokens.Colors.ivory)
                     .overlay(
                         RoundedRectangle(cornerRadius: DesignTokens.Radius.pill)
-                            .stroke(DesignTokens.Colors.borderCream, lineWidth: 1)
+                            .stroke(DesignTokens.Colors.warmSand, lineWidth: 1.5)
                     )
             )
+            .shadow(color: .black.opacity(0.22), radius: 20, x: 0, y: 8)
+            .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .onReceive(dotsTimer) { _ in

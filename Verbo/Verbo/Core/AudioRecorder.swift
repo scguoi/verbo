@@ -22,6 +22,10 @@ actor AudioRecorder {
     private(set) var isRecording = false
     private var audioBuffer = Data()
     private var streamContinuation: AsyncStream<Data>.Continuation?
+    // Instrumentation: count tap callbacks and yielded chunks for a single
+    // start/stop cycle, surfaced on stop() so we can see if audio is flowing.
+    private var tapCallbackCount = 0
+    private var chunksYielded = 0
 
     // MARK: - Public Properties
 
@@ -59,8 +63,12 @@ actor AudioRecorder {
 
         let bufferSize = AVAudioFrameCount(inputFormat.sampleRate * 0.04)
 
+        tapCallbackCount = 0
+        chunksYielded = 0
+
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, _ in
             guard let self else { return }
+            Task { await self.incrementTapCount() }
 
             let frameCapacity = AVAudioFrameCount(
                 Double(buffer.frameLength) * targetFormat.sampleRate / inputFormat.sampleRate
@@ -123,7 +131,13 @@ actor AudioRecorder {
         streamContinuation?.finish()
         streamContinuation = nil
 
+        DebugLog.write("[audio] stop() tapCallbacks=\(tapCallbackCount) chunksYielded=\(chunksYielded) bufferedBytesLeft=\(remaining.count)")
+
         return remaining
+    }
+
+    private func incrementTapCount() {
+        tapCallbackCount += 1
     }
 
     // MARK: - Private Helpers
@@ -133,6 +147,7 @@ actor AudioRecorder {
         while audioBuffer.count >= Self.chunkSize {
             let chunk = audioBuffer.prefix(Self.chunkSize)
             streamContinuation?.yield(Data(chunk))
+            chunksYielded += 1
             audioBuffer = audioBuffer.dropFirst(Self.chunkSize)
         }
     }

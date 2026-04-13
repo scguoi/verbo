@@ -4,23 +4,16 @@ struct FloatingPanelView: View {
     @Bindable var viewModel: FloatingViewModel
 
     var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                PillView(
-                    state: viewModel.pipelineState,
-                    sceneName: viewModel.currentSceneName,
-                    hotkeyHint: viewModel.currentHotkeyHint,
-                    timerText: viewModel.timerText,
-                    audioLevels: viewModel.audioLevels,
-                    dotColor: viewModel.pillDotColor,
-                    onTap: { viewModel.pillTapped() }
-                )
-            }
-        }
-        .padding(DesignTokens.Spacing.sm)
-        .frame(width: FloatingPanel.panelWidth, height: FloatingPanel.panelHeight, alignment: .bottomTrailing)
+        PillView(
+            state: viewModel.pipelineState,
+            sceneName: viewModel.currentSceneName,
+            hotkeyHint: viewModel.currentHotkeyHint,
+            timerText: viewModel.timerText,
+            audioLevels: viewModel.audioLevels,
+            dotColor: viewModel.pillDotColor,
+            onTap: { viewModel.pillTapped() }
+        )
+        .frame(width: FloatingPanel.panelWidth, height: FloatingPanel.panelHeight)
         .task { await pollAudioLevelsLoop() }
     }
 
