@@ -57,15 +57,4 @@ enum TestFixtures {
         }
     }
 
-    static let iflytekSuccessJSON = """
-    {"code":0,"message":"success","data":{"result":{"ws":[{"cw":[{"w":"你好","sc":0}]}],"sn":1,"ls":false,"pgs":"apd"},"status":1}}
-    """
-
-    static let iflytekFinalJSON = """
-    {"code":0,"message":"success","data":{"result":{"ws":[{"cw":[{"w":"世界","sc":0}]}],"sn":2,"ls":true,"pgs":"apd"},"status":2}}
-    """
-
-    static let iflytekErrorJSON = """
-    {"code":10165,"message":"invalid handle","data":null}
-    """
 }

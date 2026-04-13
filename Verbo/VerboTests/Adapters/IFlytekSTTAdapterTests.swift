@@ -6,7 +6,7 @@ import Foundation
 
 @Suite("IFlytekSTTAdapter Auth URL")
 struct IFlytekSTTAdapterAuthURLTests {
-    @Test("Auth URL contains required query parameters")
+    @Test("Auth URL points to Spark IAT endpoint with required query params")
     func authURLContainsRequiredParams() throws {
         let url = IFlytekSTTAdapter.buildAuthURL(
             appId: "testAppId",
@@ -17,8 +17,8 @@ struct IFlytekSTTAdapterAuthURLTests {
         guard let url else { return }
 
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        #expect(components?.host == "iat-api.xfyun.cn")
-        #expect(components?.path == "/v2/iat")
+        #expect(components?.host == "iat.xf-yun.com")
+        #expect(components?.path == "/v1")
 
         let queryItems = components?.queryItems ?? []
         let paramNames = Set(queryItems.map(\.name))
@@ -31,43 +31,54 @@ struct IFlytekSTTAdapterAuthURLTests {
 
 // MARK: - Response Frame Parsing Tests
 
-@Suite("IFlytekResponseFrame Parsing")
-struct IFlytekResponseFrameParsingTests {
-    @Test("Parse single response frame with Chinese text")
-    func parseSingleResponseFrame() throws {
-        let json = """
+@Suite("SparkResponseFrame Parsing")
+struct SparkResponseFrameParsingTests {
+    @Test("Outer envelope decodes and inner base64 text decodes to IFlytekResult")
+    func parseSparkResponseFrame() throws {
+        // Inner payload — what the caller would see after base64-decoding
+        // `payload.result.text`. Same shape as the legacy /v2/iat result.
+        let innerJSON = """
+        {"sn":1,"ls":false,"pgs":"apd","ws":[{"cw":[{"w":"你","sc":0},{"w":"好","sc":0}]}]}
+        """
+        let innerBase64 = Data(innerJSON.utf8).base64EncodedString()
+
+        let outerJSON = """
         {
-            "code": 0,
-            "message": "success",
-            "sid": "iat000123",
-            "data": {
-                "status": 1,
+            "header": {
+                "code": 0,
+                "message": "success",
+                "sid": "iat000123",
+                "status": 1
+            },
+            "payload": {
                 "result": {
-                    "sn": 1,
-                    "pgs": "apd",
-                    "ls": false,
-                    "ws": [
-                        {
-                            "cw": [
-                                { "w": "你", "sc": 0.0 },
-                                { "w": "好", "sc": 0.0 }
-                            ]
-                        }
-                    ]
+                    "encoding": "utf8",
+                    "compress": "raw",
+                    "format": "json",
+                    "seq": 2,
+                    "status": 1,
+                    "text": "\(innerBase64)"
                 }
             }
         }
         """
-        let data = try #require(json.data(using: .utf8))
-        let frame = try JSONDecoder().decode(IFlytekResponseFrame.self, from: data)
+        let outerData = try #require(outerJSON.data(using: .utf8))
+        let frame = try JSONDecoder().decode(SparkResponseFrame.self, from: outerData)
 
-        #expect(frame.code == 0)
-        #expect(frame.sid == "iat000123")
-        #expect(frame.data?.result?.sn == 1)
-        #expect(frame.data?.result?.pgs == "apd")
-        #expect(frame.data?.result?.ls == false)
+        #expect(frame.header.code == 0)
+        #expect(frame.header.sid == "iat000123")
+        #expect(frame.header.status == 1)
 
-        let words = frame.data?.result?.ws ?? []
+        // Decode the inner base64 payload.
+        let textB64 = try #require(frame.payload?.result?.text)
+        let innerData = try #require(Data(base64Encoded: textB64))
+        let inner = try JSONDecoder().decode(IFlytekResult.self, from: innerData)
+
+        #expect(inner.sn == 1)
+        #expect(inner.pgs == "apd")
+        #expect(inner.ls == false)
+
+        let words = inner.ws ?? []
         let text = words.flatMap { $0.cw ?? [] }.map(\.w).joined()
         #expect(text == "你好")
     }

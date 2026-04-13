@@ -68,7 +68,6 @@ struct AppConfigCompatibilityTests {
         let scene = try decoder.decode(Scene.self, from: data)
         #expect(scene.id == "test")
         #expect(scene.hotkey.toggleRecord == nil)
-        #expect(scene.hotkey.pushToTalk == nil)
     }
 
     @Test("AppConfig ignores unknown extra fields")
@@ -107,22 +106,4 @@ struct AppConfigCompatibilityTests {
         #expect(decoded == original)
     }
 
-    // MARK: - IFlytekResponseFrame
-
-    @Test("IFlytekResponseFrame decodes error JSON (code=10165)")
-    func iflytekErrorFrameDecode() throws {
-        let data = TestFixtures.iflytekErrorJSON.data(using: .utf8)!
-        let frame = try decoder.decode(IFlytekResponseFrame.self, from: data)
-        #expect(frame.code == 10165)
-        #expect(frame.data == nil)
-    }
-
-    @Test("IFlytekResponseFrame decodes success JSON (code=0, first word is 你好)")
-    func iflytekSuccessFrameDecode() throws {
-        let data = TestFixtures.iflytekSuccessJSON.data(using: .utf8)!
-        let frame = try decoder.decode(IFlytekResponseFrame.self, from: data)
-        #expect(frame.code == 0)
-        let firstWord = frame.data?.result?.ws?.first?.cw?.first?.w
-        #expect(firstWord == "你好")
-    }
 }

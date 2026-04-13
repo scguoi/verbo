@@ -1,19 +1,7 @@
 import Foundation
 import CryptoKit
 
-// MARK: - Response Types
-
-struct IFlytekResponseFrame: Codable, Sendable {
-    let code: Int
-    let message: String?
-    let data: IFlytekData?
-    let sid: String?
-}
-
-struct IFlytekData: Codable, Sendable {
-    let result: IFlytekResult?
-    let status: Int?
-}
+// MARK: - Inner Result Types (same as legacy /v2/iat, used for the decoded `text` payload)
 
 struct IFlytekResult: Codable, Sendable {
     let ws: [IFlytekWord]?
@@ -32,12 +20,39 @@ struct IFlytekChar: Codable, Sendable {
     let sc: Double?
 }
 
+// MARK: - Spark IAT Response Frame Types (iat.xf-yun.com/v1)
+
+struct SparkResponseFrame: Codable, Sendable {
+    let header: SparkResponseHeader
+    let payload: SparkResponsePayload?
+}
+
+struct SparkResponseHeader: Codable, Sendable {
+    let code: Int
+    let message: String?
+    let sid: String?
+    /// Session status: 0 = initial, 1 = ongoing, 2 = complete.
+    let status: Int
+}
+
+struct SparkResponsePayload: Codable, Sendable {
+    let result: SparkResponseResult?
+}
+
+struct SparkResponseResult: Codable, Sendable {
+    /// Base64-encoded JSON payload. Decode then parse as `IFlytekResult`.
+    let text: String
+    let status: Int?
+    let seq: Int?
+}
+
 // MARK: - Error Types
 
 enum IFlytekError: LocalizedError, Sendable {
     case apiError(code: Int, message: String)
     case invalidConfiguration
     case connectionFailed
+    case invalidResponsePayload
 
     var errorDescription: String? {
         switch self {
@@ -47,6 +62,8 @@ enum IFlytekError: LocalizedError, Sendable {
             return "iFlytek: invalid API configuration"
         case .connectionFailed:
             return "iFlytek: WebSocket connection failed"
+        case .invalidResponsePayload:
+            return "iFlytek: could not decode response payload"
         }
     }
 }
@@ -61,12 +78,6 @@ struct IFlytekResultAccumulator: Sendable {
         sentences.map(\.text).joined()
     }
 
-    /// Processes a result frame from iFlytek.
-    /// - Parameters:
-    ///   - sn: Sentence number (sequence number)
-    ///   - pgs: Page status — "apd" for append, "rpl" for replace
-    ///   - rg: Range [begin, end] of sentence numbers to replace (only used when pgs == "rpl")
-    ///   - text: The recognized text for this frame
     mutating func process(sn: Int, pgs: String?, rg: [Int]?, text: String) {
         if pgs == "rpl", let rg, rg.count == 2 {
             let rgBegin = rg[0]
@@ -82,18 +93,30 @@ struct IFlytekResultAccumulator: Sendable {
     }
 }
 
-// MARK: - iFlytek STT Adapter
+// MARK: - iFlytek STT Adapter (Spark IAT — iat.xf-yun.com/v1)
 
-/// STT adapter for iFlytek (科大讯飞) using WebSocket streaming API.
-/// Reference: https://www.xfyun.cn/doc/asr/voicedictation/API.html
+/// STT adapter for iFlytek's Spark-backed streaming IAT endpoint.
+/// Reference: https://www.xfyun.cn/doc/spark/spark_zh_iat.html
+///
+/// Differences from the legacy `iat-api.xfyun.cn/v2/iat` endpoint:
+/// - Host `iat.xf-yun.com`, path `/v1`.
+/// - Request schema is `{header, parameter, payload}` instead of
+///   `{common, business, data}`.
+/// - Audio params (sample_rate, channels, bit_depth, seq, status, audio)
+///   live under `payload.audio` and need a `seq` that increments per frame.
+/// - `parameter.iat.domain = "slm"` selects the large-model backend.
+/// - Response text is double-encoded: `payload.result.text` is a base64
+///   string whose contents are the JSON we used to read directly on /v2.
+/// - The signature scheme is identical (HMAC-SHA256 with apiSecret), just
+///   with the new host and `/v1` path in the signature origin.
 final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
     private let appId: String
     private let apiKey: String
     private let apiSecret: String
     private let session: URLSession
 
-    private static let host = "iat-api.xfyun.cn"
-    private static let path = "/v2/iat"
+    private static let host = "iat.xf-yun.com"
+    private static let path = "/v1"
 
     var name: String { "iFlytek" }
     var supportsStreaming: Bool { true }
@@ -108,18 +131,17 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
     // MARK: - Auth URL Builder
 
     /// Builds the authenticated WSS URL using HMAC-SHA256 signature.
+    /// Identical to the legacy scheme except the `host` and path inside
+    /// `signature_origin`.
     static func buildAuthURL(appId: String, apiKey: String, apiSecret: String, date: Date = Date()) -> URL? {
-        // Format date as RFC1123
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss z"
         dateFormatter.timeZone = TimeZone(identifier: "GMT")
         let dateString = dateFormatter.string(from: date)
 
-        // Build signature origin string
         let signatureOrigin = "host: \(host)\ndate: \(dateString)\nGET \(path) HTTP/1.1"
 
-        // HMAC-SHA256 sign with apiSecret
         guard let secretData = apiSecret.data(using: .utf8),
               let messageData = signatureOrigin.data(using: .utf8) else {
             return nil
@@ -128,13 +150,9 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
         let signature = HMAC<SHA256>.authenticationCode(for: messageData, using: key)
         let signatureBase64 = Data(signature).base64EncodedString()
 
-        // Build authorization header value
         let authorizationOrigin = "api_key=\"\(apiKey)\", algorithm=\"hmac-sha256\", headers=\"host date request-line\", signature=\"\(signatureBase64)\""
         let authorizationBase64 = authorizationOrigin.data(using: .utf8)?.base64EncodedString() ?? ""
 
-        // Build URL with manually percent-encoded query params.
-        // URLComponents.queryItems would double-encode base64 chars (+, /, =),
-        // causing iFlytek auth to fail intermittently.
         let dateEncoded = dateString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? dateString
         let authEncoded = authorizationBase64.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? authorizationBase64
         let urlString = "wss://\(host)\(path)?authorization=\(authEncoded)&date=\(dateEncoded)&host=\(host)"
@@ -149,6 +167,56 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
         case "en": return "en_us"
         default: return lang
         }
+    }
+
+    // MARK: - Frame Builders
+
+    /// Builds a send frame. `frameStatus` is the audio status:
+    /// 0 = first, 1 = middle, 2 = last. The first frame also carries the
+    /// `parameter` block; subsequent frames only carry `header` + `payload`.
+    private func buildFrame(
+        audioBase64: String,
+        seq: Int,
+        frameStatus: Int,
+        lang: String
+    ) -> [String: Any] {
+        let audioObject: [String: Any] = [
+            "encoding": "raw",
+            "sample_rate": 16000,
+            "channels": 1,
+            "bit_depth": 16,
+            "seq": seq,
+            "status": frameStatus,
+            "audio": audioBase64
+        ]
+
+        var frame: [String: Any] = [
+            "header": [
+                "app_id": self.appId,
+                "status": frameStatus
+            ],
+            "payload": [
+                "audio": audioObject
+            ]
+        ]
+
+        if frameStatus == 0 {
+            frame["parameter"] = [
+                "iat": [
+                    "domain": "slm",
+                    "language": mapLanguage(lang),
+                    "accent": "mandarin",
+                    "eos": 3000,
+                    "dwa": "wpgs",
+                    "result": [
+                        "encoding": "utf8",
+                        "compress": "raw",
+                        "format": "json"
+                    ]
+                ]
+            ]
+        }
+        return frame
     }
 
     // MARK: - STTAdapter Implementation
@@ -169,16 +237,14 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                     return
                 }
 
-                Log.stt.info("Connecting...")
+                Log.stt.info("Connecting to Spark IAT...")
                 let webSocketTask = self.session.webSocketTask(with: url)
                 webSocketTask.resume()
 
                 var accumulator = IFlytekResultAccumulator()
-                var isFirst = true
                 var previousText = ""
-                var frameIndex = 0
 
-                // Task to receive WebSocket messages
+                // Receiver task — drains the socket until header.status == 2.
                 let receiveTask = Task {
                     while !Task.isCancelled {
                         do {
@@ -218,101 +284,80 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
                     }
                 }
 
-                // Send audio frames
-                for await audioChunk in audioStream {
-                    let frame: [String: Any]
-                    let audioBase64 = audioChunk.base64EncodedString()
+                // Stream audio chunks. seq starts at 1 and increments per frame.
+                var seq = 1
+                var isFirst = true
 
-                    if isFirst {
-                        frame = [
-                            "common": ["app_id": self.appId],
-                            "business": [
-                                "language": self.mapLanguage(lang),
-                                "domain": "iat",
-                                "accent": "mandarin",
-                                "dwa": "wpgs",
-                                "ptt": 1,
-                                "vad_eos": 3000
-                            ],
-                            "data": [
-                                "status": 0,
-                                "format": "audio/L16;rate=16000",
-                                "encoding": "raw",
-                                "audio": audioBase64
-                            ]
-                        ]
-                        isFirst = false
-                    } else {
-                        frame = [
-                            "data": [
-                                "status": 1,
-                                "format": "audio/L16;rate=16000",
-                                "encoding": "raw",
-                                "audio": audioBase64
-                            ]
-                        ]
-                    }
+                for await audioChunk in audioStream {
+                    let audioBase64 = audioChunk.base64EncodedString()
+                    let frameStatus = isFirst ? 0 : 1
+                    let frame = self.buildFrame(
+                        audioBase64: audioBase64,
+                        seq: seq,
+                        frameStatus: frameStatus,
+                        lang: lang
+                    )
+                    isFirst = false
 
                     if let jsonData = try? JSONSerialization.data(withJSONObject: frame),
                        let jsonString = String(data: jsonData, encoding: .utf8) {
                         do {
                             try await webSocketTask.send(.string(jsonString))
-                            if frameIndex == 0 {
-                                Log.stt.debug("First frame sent OK")
+                            if seq == 1 {
+                                Log.stt.debug("First frame sent OK (spark/v1)")
                             }
                         } catch {
-                            Log.stt.error("Send error at frame \(frameIndex, privacy: .public): \(error, privacy: .public)")
+                            Log.stt.error("Send error at seq \(seq, privacy: .public): \(error, privacy: .public)")
                             break
                         }
                     }
-                    frameIndex += 1
+                    seq += 1
                 }
 
-                // Send last frame (status=2, empty audio)
-                let lastFrame: [String: Any] = [
-                    "data": [
-                        "status": 2,
-                        "format": "audio/L16;rate=16000",
-                        "encoding": "raw",
-                        "audio": ""
-                    ]
-                ]
+                // Last frame (status=2, empty audio).
+                let lastFrame = self.buildFrame(
+                    audioBase64: "",
+                    seq: seq,
+                    frameStatus: 2,
+                    lang: lang
+                )
                 if let jsonData = try? JSONSerialization.data(withJSONObject: lastFrame),
                    let jsonString = String(data: jsonData, encoding: .utf8) {
                     try? await webSocketTask.send(.string(jsonString))
                 }
 
-                // Wait for recognition to complete
                 await receiveTask.value
                 webSocketTask.cancel(with: .goingAway, reason: nil)
             }
         }
     }
 
-    /// Returns true if recognition is complete (status == 2)
+    /// Returns true when header.status == 2 (session complete).
     private func processResponseData(
         _ data: Data,
         accumulator: inout IFlytekResultAccumulator,
         previousText: inout String,
         continuation: AsyncThrowingStream<String, Error>.Continuation
     ) throws -> Bool {
-        let frame = try JSONDecoder().decode(IFlytekResponseFrame.self, from: data)
+        let frame = try JSONDecoder().decode(SparkResponseFrame.self, from: data)
 
-        guard frame.code == 0 else {
+        guard frame.header.code == 0 else {
             throw IFlytekError.apiError(
-                code: frame.code,
-                message: frame.message ?? "Unknown error"
+                code: frame.header.code,
+                message: frame.header.message ?? "Unknown error"
             )
         }
 
-        let dataStatus = frame.data?.status ?? 0
-
-        if let result = frame.data?.result {
-            let words = result.ws ?? []
+        // Decode the nested result.text (base64 → JSON → IFlytekResult).
+        if let textBase64 = frame.payload?.result?.text,
+           !textBase64.isEmpty,
+           let innerData = Data(base64Encoded: textBase64) {
+            let inner = try JSONDecoder().decode(IFlytekResult.self, from: innerData)
+            let words = inner.ws ?? []
             let text = words.flatMap { $0.cw ?? [] }.map(\.w).joined()
 
-            if let sn = result.sn {
-                accumulator.process(sn: sn, pgs: result.pgs, rg: result.rg, text: text)
+            if let sn = inner.sn {
+                accumulator.process(sn: sn, pgs: inner.pgs, rg: inner.rg, text: text)
             }
 
             let currentText = accumulator.currentText
@@ -322,7 +367,7 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
             }
         }
 
-        if dataStatus == 2 {
+        if frame.header.status == 2 {
             continuation.finish()
             return true
         }
@@ -330,7 +375,6 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
     }
 
     func transcribe(audio: Data, lang: String) async throws -> String {
-        // Wrap single audio buffer in AsyncStream for transcribeStream
         let stream = AsyncStream<Data> { continuation in
             continuation.yield(audio)
             continuation.finish()
