@@ -109,3 +109,7 @@ See [`CLAUDE.md`](CLAUDE.md) for layer conventions and concurrency rules, and [`
 - Swift 6 strict concurrency is enabled. Types crossing actor boundaries must be Sendable.
 - Tests live in `Verbo/VerboTests/`. `TextOutputServiceTests` is skipped in headless runs because CGEvent needs a display.
 - `DebugLog.write` appends timestamped (`HH:mm:ss.SSS`) lines to `~/.verbo/debug.log` from any thread and is used for latency tracing.
+
+## License
+
+[MIT](LICENSE) © 2026 scguoi
