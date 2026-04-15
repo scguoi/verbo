@@ -143,6 +143,13 @@ actor AudioRecorder {
         if engine.isRunning { engine.stop() }
         engine = AVAudioEngine()
 
+        // If the system default input device looks like a virtual / loopback
+        // capture driver (iFlyrec, BlackHole, Soundflower, etc.), it's not a
+        // real microphone — it captures system output and delivers silence
+        // or wrong data to us. Pick a real physical mic instead and force
+        // the engine to use it.
+        Self.overrideInputDeviceIfVirtual(engine: engine)
+
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
         DebugLog.write("[audio] inputFormat sr=\(inputFormat.sampleRate) ch=\(inputFormat.channelCount) t+\(Self.ms(t0))ms")
@@ -301,6 +308,159 @@ actor AudioRecorder {
 
     private static func ms(_ startNs: UInt64) -> Int {
         Int((DispatchTime.now().uptimeNanoseconds &- startNs) / 1_000_000)
+    }
+
+    /// Blocklist of device-name substrings that identify virtual /
+    /// loopback audio capture drivers. These expose themselves as input
+    /// devices but record system output, not a real mic.
+    private static let virtualDeviceNameFragments = [
+        "iflyrec", "blackhole", "soundflower", "loopback",
+        "vb-audio", "vb audio", "ishowu", "virtual",
+        "screen capture", "aggregate",
+    ]
+
+    /// If the current default input device looks like a virtual/loopback
+    /// capture driver, find the best real mic on the system and set it as
+    /// the engine's input device via AUAudioUnit. Falls back silently if
+    /// no alternative is available.
+    private static func overrideInputDeviceIfVirtual(engine: AVAudioEngine) {
+        guard let defaultID = defaultInputDeviceID() else { return }
+        let defaultName = deviceName(id: defaultID) ?? ""
+        let defaultIsVirtual = isVirtualDevice(id: defaultID, name: defaultName)
+
+        if !defaultIsVirtual {
+            return  // system default looks fine, let AVAudioEngine use it
+        }
+
+        DebugLog.write("[audio] default input '\(defaultName)' looks virtual — picking real mic")
+        guard let replacementID = pickBestRealInputDevice(excluding: defaultID) else {
+            DebugLog.write("[audio] no real mic candidate found; staying with '\(defaultName)'")
+            return
+        }
+        let replacementName = deviceName(id: replacementID) ?? "?"
+        DebugLog.write("[audio] overriding input device → '\(replacementName)' (id=\(replacementID))")
+
+        guard let audioUnit = engine.inputNode.audioUnit else {
+            DebugLog.write("[audio] inputNode.audioUnit is nil, cannot override device")
+            return
+        }
+        var idValue = replacementID
+        let err = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &idValue,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+        if err != noErr {
+            DebugLog.write("[audio] AudioUnitSetProperty CurrentDevice failed status=\(err)")
+        }
+    }
+
+    private static func defaultInputDeviceID() -> AudioDeviceID? {
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &addr, 0, nil, &size, &deviceID
+        )
+        return status == noErr ? deviceID : nil
+    }
+
+    /// Enumerate all audio devices with at least one input stream, score
+    /// them by "realness" (built-in > USB/Bluetooth > unknown > virtual),
+    /// return the highest-scoring one excluding a given id.
+    private static func pickBestRealInputDevice(excluding excluded: AudioDeviceID) -> AudioDeviceID? {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &addr, 0, nil, &size
+        ) == noErr else { return nil }
+
+        let count = Int(size) / MemoryLayout<AudioDeviceID>.size
+        var ids = [AudioDeviceID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &addr, 0, nil, &size, &ids
+        ) == noErr else { return nil }
+
+        var best: (AudioDeviceID, Int)?
+        for id in ids where id != excluded {
+            guard hasInputStreams(id: id) else { continue }
+            let name = deviceName(id: id) ?? ""
+            let score = scoreDevice(id: id, name: name)
+            DebugLog.write("[audio] candidate name='\(name)' id=\(id) score=\(score)")
+            if score < 0 { continue }
+            if best == nil || score > best!.1 {
+                best = (id, score)
+            }
+        }
+        return best?.0
+    }
+
+    private static func scoreDevice(id: AudioDeviceID, name: String) -> Int {
+        if isVirtualDevice(id: id, name: name) {
+            return -1  // never pick this
+        }
+        let transport = deviceTransportType(id: id)
+        switch transport {
+        case kAudioDeviceTransportTypeBuiltIn:    return 100
+        case kAudioDeviceTransportTypeUSB:        return 80
+        case kAudioDeviceTransportTypeBluetooth,
+             kAudioDeviceTransportTypeBluetoothLE: return 70
+        case kAudioDeviceTransportTypeThunderbolt: return 60
+        case kAudioDeviceTransportTypeDisplayPort: return 50
+        case kAudioDeviceTransportTypeAirPlay:    return 40
+        default:                                  return 30
+        }
+    }
+
+    private static func isVirtualDevice(id: AudioDeviceID, name: String) -> Bool {
+        let lower = name.lowercased()
+        for fragment in virtualDeviceNameFragments where lower.contains(fragment) {
+            return true
+        }
+        let transport = deviceTransportType(id: id)
+        return transport == kAudioDeviceTransportTypeVirtual
+            || transport == kAudioDeviceTransportTypeAggregate
+    }
+
+    private static func deviceTransportType(id: AudioDeviceID) -> UInt32 {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var transport: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        let status = AudioObjectGetPropertyData(id, &addr, 0, nil, &size, &transport)
+        return status == noErr ? transport : 0
+    }
+
+    private static func hasInputStreams(id: AudioDeviceID) -> Bool {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        let status = AudioObjectGetPropertyDataSize(id, &addr, 0, nil, &size)
+        return status == noErr && size > 0
+    }
+
+    private static func deviceName(id: AudioDeviceID) -> String? {
+        getDeviceString(id: id, selector: kAudioObjectPropertyName)
     }
 
     /// Preroll an AVAudioRecorder for ~300 ms. AVAudioRecorder uses a
