@@ -342,13 +342,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avg latency: —"
+            "value": "Latency —"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "平均耗时：—"
+            "value": "耗时 —"
           }
         }
       }
@@ -358,13 +358,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avg latency: %d ms (last %d)"
+            "value": "Latency %d ms / %d"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "平均耗时：%d ms（近 %d 次）"
+            "value": "耗时 %d ms / %d"
+          }
+        }
+      }
+    },
+    "pipeline.error.no_speech": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No speech detected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未检测到语音"
           }
         }
       }
@@ -593,6 +609,70 @@
         }
       }
     },
+    "settings.general.language.restart_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要重启"
+          }
+        }
+      }
+    },
+    "settings.general.language.restart_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The UI language change will take effect after Verbo restarts."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面语言修改需要重启 Verbo 后生效。"
+          }
+        }
+      }
+    },
+    "settings.general.language.restart_now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart Now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即重启"
+          }
+        }
+      }
+    },
+    "settings.general.language.restart_later": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稍后"
+          }
+        }
+      }
+    },
     "settings.general.language.zh": {
       "localizations": {
         "en": {
@@ -669,22 +749,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "模拟输入"
-          }
-        }
-      }
-    },
-    "settings.general.push_to_talk": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Push to Talk"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "按住说话"
           }
         }
       }
@@ -1057,22 +1121,6 @@
         }
       }
     },
-    "settings.scenes.editor.ptt_hotkey": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Push to Talk"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "按住说话"
-          }
-        }
-      }
-    },
     "settings.scenes.editor.save": {
       "localizations": {
         "en": {
@@ -1197,6 +1245,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "场景"
+          }
+        }
+      }
+    },
+    "settings.save.success": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存成功"
+          }
+        }
+      }
+    },
+    "settings.save.failure": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存失败"
           }
         }
       }

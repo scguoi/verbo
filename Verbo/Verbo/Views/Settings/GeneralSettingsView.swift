@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // MARK: - GeneralSettingsView
@@ -8,35 +9,6 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            // Global Hotkeys
-            Section(String(localized: "settings.general.hotkeys_section")) {
-                LabeledContent(String(localized: "settings.general.toggle_record")) {
-                    hotkeyField(
-                        rawValue: viewModel.config.globalHotkey.toggleRecord,
-                        onCommit: { newValue in
-                            let updatedHotkey = GlobalHotkey(
-                                toggleRecord: newValue,
-                                pushToTalk: viewModel.config.globalHotkey.pushToTalk
-                            )
-                            saveHotkey(updatedHotkey)
-                        }
-                    )
-                }
-
-                LabeledContent(String(localized: "settings.general.push_to_talk")) {
-                    hotkeyField(
-                        rawValue: viewModel.config.globalHotkey.pushToTalk ?? "",
-                        onCommit: { newValue in
-                            let updatedHotkey = GlobalHotkey(
-                                toggleRecord: viewModel.config.globalHotkey.toggleRecord,
-                                pushToTalk: newValue.isEmpty ? nil : newValue
-                            )
-                            saveHotkey(updatedHotkey)
-                        }
-                    )
-                }
-            }
-
             // Behavior
             Section(String(localized: "settings.general.behavior_section")) {
                 Picker(
@@ -95,6 +67,8 @@ struct GeneralSettingsView: View {
                     selection: Binding(
                         get: { viewModel.config.general.uiLanguage },
                         set: { lang in
+                            let previous = viewModel.config.general.uiLanguage
+                            guard lang != previous else { return }
                             let updated = GeneralConfig(
                                 outputMode: viewModel.config.general.outputMode,
                                 autoCollapseDelay: viewModel.config.general.autoCollapseDelay,
@@ -103,6 +77,7 @@ struct GeneralSettingsView: View {
                                 historyRetentionDays: viewModel.config.general.historyRetentionDays
                             )
                             viewModel.updateGeneral(updated)
+                            promptRestartForLanguageChange()
                         }
                     )
                 ) {
@@ -143,44 +118,34 @@ struct GeneralSettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// Hotkey field: shows formatted shortcut as a chip, with a small TextField
-    /// for editing the raw value underneath.
-    @ViewBuilder
-    private func hotkeyField(rawValue: String, onCommit: @escaping (String) -> Void) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            // Pretty formatted display chip
-            Text(rawValue.isEmpty ? "—" : HotkeyManager.displayString(for: rawValue))
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .frame(minWidth: 60, alignment: .center)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(DesignTokens.Colors.surfaceElevated)
-                )
+    /// Show a restart-required alert when the UI language changes. Bundle's
+    /// localized-string cache is per-process, so already-rendered SwiftUI
+    /// views cannot pick up a new language without a fresh launch.
+    private func promptRestartForLanguageChange() {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "settings.general.language.restart_title")
+        alert.informativeText = String(localized: "settings.general.language.restart_message")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: String(localized: "settings.general.language.restart_now"))
+        alert.addButton(withTitle: String(localized: "settings.general.language.restart_later"))
 
-            // Raw editable field
-            TextField("", text: Binding(
-                get: { rawValue },
-                set: { onCommit($0) }
-            ))
-            .textFieldStyle(.roundedBorder)
-            .font(.system(size: 11, design: .monospaced))
-            .frame(width: 200)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            relaunchApp()
         }
     }
 
-    private func saveHotkey(_ hotkey: GlobalHotkey) {
-        let newConfig = AppConfig(
-            version: viewModel.config.version,
-            defaultScene: viewModel.config.defaultScene,
-            globalHotkey: hotkey,
-            scenes: viewModel.config.scenes,
-            providers: viewModel.config.providers,
-            general: viewModel.config.general
-        )
-        viewModel.configManager.update(newConfig)
-        try? viewModel.configManager.save()
+    /// Relaunch the app: spawn a detached copy of ourselves after a short
+    /// delay, then terminate the current process.
+    private func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", url.path]
+        try? task.run()
+        // Give the new process a beat to start before we exit.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            NSApp.terminate(nil)
+        }
     }
 }

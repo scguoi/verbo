@@ -67,65 +67,57 @@ private struct STTProviderCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text(name.capitalized)
-                .font(DesignTokens.Typography.settingsTitle)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-            ProviderField(
-                label: String(localized: "settings.providers.app_id"),
-                text: Binding(
-                    get: { draft.appId },
-                    set: { draft = STTProviderConfig(
-                        appId: $0,
-                        apiKey: draft.apiKey,
-                        apiSecret: draft.apiSecret,
-                        enabledLangs: draft.enabledLangs
-                    )}
+        GroupBox(name.capitalized) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                ProviderField(
+                    label: String(localized: "settings.providers.app_id"),
+                    text: Binding(
+                        get: { draft.appId },
+                        set: { draft = STTProviderConfig(
+                            appId: $0,
+                            apiKey: draft.apiKey,
+                            apiSecret: draft.apiSecret,
+                            enabledLangs: draft.enabledLangs
+                        )}
+                    )
                 )
-            )
 
-            SecureProviderField(
-                label: String(localized: "settings.providers.api_key"),
-                text: Binding(
-                    get: { draft.apiKey },
-                    set: { draft = STTProviderConfig(
-                        appId: draft.appId,
-                        apiKey: $0,
-                        apiSecret: draft.apiSecret,
-                        enabledLangs: draft.enabledLangs
-                    )}
+                SecureProviderField(
+                    label: String(localized: "settings.providers.api_key"),
+                    text: Binding(
+                        get: { draft.apiKey },
+                        set: { draft = STTProviderConfig(
+                            appId: draft.appId,
+                            apiKey: $0,
+                            apiSecret: draft.apiSecret,
+                            enabledLangs: draft.enabledLangs
+                        )}
+                    )
                 )
-            )
 
-            SecureProviderField(
-                label: String(localized: "settings.providers.api_secret"),
-                text: Binding(
-                    get: { draft.apiSecret },
-                    set: { draft = STTProviderConfig(
-                        appId: draft.appId,
-                        apiKey: draft.apiKey,
-                        apiSecret: $0,
-                        enabledLangs: draft.enabledLangs
-                    )}
+                SecureProviderField(
+                    label: String(localized: "settings.providers.api_secret"),
+                    text: Binding(
+                        get: { draft.apiSecret },
+                        set: { draft = STTProviderConfig(
+                            appId: draft.appId,
+                            apiKey: draft.apiKey,
+                            apiSecret: $0,
+                            enabledLangs: draft.enabledLangs
+                        )}
+                    )
                 )
-            )
 
-            HStack {
-                Spacer()
-                Button(String(localized: "settings.providers.save")) {
-                    onUpdate(draft)
+                HStack {
+                    Spacer()
+                    Button(String(localized: "settings.providers.save")) {
+                        onUpdate(draft)
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             }
+            .padding(.top, DesignTokens.Spacing.xs)
         }
-        .padding(DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.large))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignTokens.Radius.large)
-                .stroke(DesignTokens.Colors.borderWarm, lineWidth: 1)
-        )
     }
 }
 
@@ -144,62 +136,54 @@ private struct LLMProviderCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text(name.capitalized)
-                .font(DesignTokens.Typography.settingsTitle)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-            SecureProviderField(
-                label: String(localized: "settings.providers.api_key"),
-                text: Binding(
-                    get: { draft.apiKey },
-                    set: { draft = LLMProviderConfig(
-                        apiKey: $0,
-                        model: draft.model,
-                        baseUrl: draft.baseUrl
-                    )}
+        GroupBox(name.capitalized) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                SecureProviderField(
+                    label: String(localized: "settings.providers.api_key"),
+                    text: Binding(
+                        get: { draft.apiKey },
+                        set: { draft = LLMProviderConfig(
+                            apiKey: $0,
+                            model: draft.model,
+                            baseUrl: draft.baseUrl
+                        )}
+                    )
                 )
-            )
 
-            ProviderField(
-                label: String(localized: "settings.providers.model"),
-                text: Binding(
-                    get: { draft.model },
-                    set: { draft = LLMProviderConfig(
-                        apiKey: draft.apiKey,
-                        model: $0,
-                        baseUrl: draft.baseUrl
-                    )}
+                ProviderField(
+                    label: String(localized: "settings.providers.model"),
+                    text: Binding(
+                        get: { draft.model },
+                        set: { draft = LLMProviderConfig(
+                            apiKey: draft.apiKey,
+                            model: $0,
+                            baseUrl: draft.baseUrl
+                        )}
+                    )
                 )
-            )
 
-            ProviderField(
-                label: String(localized: "settings.providers.base_url"),
-                text: Binding(
-                    get: { draft.baseUrl },
-                    set: { draft = LLMProviderConfig(
-                        apiKey: draft.apiKey,
-                        model: draft.model,
-                        baseUrl: $0
-                    )}
+                ProviderField(
+                    label: String(localized: "settings.providers.base_url"),
+                    text: Binding(
+                        get: { draft.baseUrl },
+                        set: { draft = LLMProviderConfig(
+                            apiKey: draft.apiKey,
+                            model: draft.model,
+                            baseUrl: $0
+                        )}
+                    )
                 )
-            )
 
-            HStack {
-                Spacer()
-                Button(String(localized: "settings.providers.save")) {
-                    onUpdate(draft)
+                HStack {
+                    Spacer()
+                    Button(String(localized: "settings.providers.save")) {
+                        onUpdate(draft)
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             }
+            .padding(.top, DesignTokens.Spacing.xs)
         }
-        .padding(DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.large))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignTokens.Radius.large)
-                .stroke(DesignTokens.Colors.borderWarm, lineWidth: 1)
-        )
     }
 }
 

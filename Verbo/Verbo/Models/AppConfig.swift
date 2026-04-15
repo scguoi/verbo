@@ -15,21 +15,6 @@ public enum UILanguage: String, Codable, Sendable {
     case en
 }
 
-// MARK: - Global Hotkey
-
-public struct GlobalHotkey: Codable, Equatable, Sendable {
-    public var toggleRecord: String
-    public var pushToTalk: String?
-
-    public init(
-        toggleRecord: String = "CommandOrControl+Shift+H",
-        pushToTalk: String? = "CommandOrControl+Shift+G"
-    ) {
-        self.toggleRecord = toggleRecord
-        self.pushToTalk = pushToTalk
-    }
-}
-
 // MARK: - STT Provider Config
 
 public struct STTProviderConfig: Codable, Equatable, Sendable {
@@ -126,7 +111,6 @@ public struct GeneralConfig: Codable, Equatable, Sendable {
 public struct AppConfig: Codable, Equatable, Sendable {
     public var version: Int
     public var defaultScene: String
-    public var globalHotkey: GlobalHotkey
     public var scenes: [Scene]
     public var providers: ProvidersConfig
     public var general: GeneralConfig
@@ -134,17 +118,30 @@ public struct AppConfig: Codable, Equatable, Sendable {
     public init(
         version: Int = 1,
         defaultScene: String = "dictate",
-        globalHotkey: GlobalHotkey = GlobalHotkey(),
         scenes: [Scene] = Scene.presets,
         providers: ProvidersConfig = ProvidersConfig(),
         general: GeneralConfig = GeneralConfig()
     ) {
         self.version = version
         self.defaultScene = defaultScene
-        self.globalHotkey = globalHotkey
         self.scenes = scenes
         self.providers = providers
         self.general = general
+    }
+
+    // Custom decode so legacy config.json with a "globalHotkey" field still
+    // loads cleanly — the field is simply ignored.
+    private enum CodingKeys: String, CodingKey {
+        case version, defaultScene, scenes, providers, general
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        self.defaultScene = try c.decodeIfPresent(String.self, forKey: .defaultScene) ?? "dictate"
+        self.scenes = try c.decodeIfPresent([Scene].self, forKey: .scenes) ?? Scene.presets
+        self.providers = try c.decodeIfPresent(ProvidersConfig.self, forKey: .providers) ?? ProvidersConfig()
+        self.general = try c.decodeIfPresent(GeneralConfig.self, forKey: .general) ?? GeneralConfig()
     }
 
     public static let `default` = AppConfig()

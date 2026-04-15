@@ -289,7 +289,7 @@ private struct SceneEditorView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
 
-                // Hotkeys
+                // Hotkey
                 sectionHeader(String(localized: "settings.scenes.editor.hotkeys"))
                 HStack(spacing: DesignTokens.Spacing.md) {
                     Text(String(localized: "settings.scenes.editor.toggle_hotkey"))
@@ -300,24 +300,7 @@ private struct SceneEditorView: View {
                         get: { draft.hotkey.toggleRecord ?? "" },
                         set: {
                             draft.hotkey = SceneHotkey(
-                                toggleRecord: $0.isEmpty ? nil : $0,
-                                pushToTalk: draft.hotkey.pushToTalk
-                            )
-                        }
-                    ))
-                    Spacer()
-                }
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Text(String(localized: "settings.scenes.editor.ptt_hotkey"))
-                        .font(DesignTokens.Typography.settingsBody)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .frame(width: 100, alignment: .leading)
-                    KeyRecorderView(shortcut: Binding(
-                        get: { draft.hotkey.pushToTalk ?? "" },
-                        set: {
-                            draft.hotkey = SceneHotkey(
-                                toggleRecord: draft.hotkey.toggleRecord,
-                                pushToTalk: $0.isEmpty ? nil : $0
+                                toggleRecord: $0.isEmpty ? nil : $0
                             )
                         }
                     ))

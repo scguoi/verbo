@@ -16,7 +16,7 @@ struct AboutView: View {
                 .font(.system(size: 28, weight: .bold, design: .serif))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            Text("v0.1.0")
+            Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")")
                 .font(DesignTokens.Typography.settingsBody)
                 .foregroundStyle(DesignTokens.Colors.textTertiary)
 

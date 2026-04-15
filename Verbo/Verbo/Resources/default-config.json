@@ -1,0 +1,89 @@
+{
+  "defaultScene": "dictate",
+  "general": {
+    "autoCollapseDelay": 0,
+    "copyOnDismiss": true,
+    "historyRetentionDays": 90,
+    "launchAtStartup": false,
+    "outputMode": "simulate",
+    "uiLanguage": "system"
+  },
+  "providers": {
+    "llm": {
+      "openai": {
+        "apiKey": "",
+        "baseUrl": "",
+        "model": "gpt-4o-mini"
+      }
+    },
+    "stt": {
+      "iflytek": {
+        "apiKey": "",
+        "apiSecret": "",
+        "appId": "",
+        "enabledLangs": [
+          "zh",
+          "en"
+        ]
+      }
+    }
+  },
+  "scenes": [
+    {
+      "hotkey": {
+        "toggleRecord": "Fn"
+      },
+      "id": "dictate",
+      "name": "语音输入",
+      "output": "simulate",
+      "pipeline": [
+        {
+          "lang": "zh",
+          "provider": "iflytek",
+          "type": "stt"
+        }
+      ]
+    },
+    {
+      "hotkey": {
+        "toggleRecord": "Alt+J"
+      },
+      "id": "polish",
+      "name": "润色输入",
+      "output": "simulate",
+      "pipeline": [
+        {
+          "lang": "zh",
+          "provider": "iflytek",
+          "type": "stt"
+        },
+        {
+          "prompt": "请润色以下口语化文字，使其更书面化，保持原意，直接输出结果：\n{{input}}",
+          "provider": "openai",
+          "type": "llm"
+        }
+      ]
+    },
+    {
+      "hotkey": {
+        "toggleRecord": "Alt+T"
+      },
+      "id": "translate",
+      "name": "中译英",
+      "output": "simulate",
+      "pipeline": [
+        {
+          "lang": "zh",
+          "provider": "iflytek",
+          "type": "stt"
+        },
+        {
+          "prompt": "将以下中文翻译为英文，直接输出翻译结果：\n{{input}}",
+          "provider": "openai",
+          "type": "llm"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

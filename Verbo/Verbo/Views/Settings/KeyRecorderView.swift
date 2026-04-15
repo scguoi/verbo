@@ -7,6 +7,17 @@ struct KeyRecorderView: View {
     @Binding var shortcut: String
     @State private var isRecording = false
     @State private var localMonitor: Any?
+    /// Scheduled commit for a modifier-alone key. We defer it briefly so
+    /// that if the user actually wants a combo (Cmd then J), the arriving
+    /// keyDown can cancel the pending commit and win instead.
+    @State private var pendingModifierTask: Task<Void, Never>?
+    /// Largest set of modifiers observed during the current recording — used
+    /// so the user can hold down multi-modifier combos like Fn+Alt and have
+    /// them captured on release.
+    @State private var maxModifierSet: Set<String> = []
+    /// If maxModifierSet was ever exactly one modifier, this stores the
+    /// raw keyCode / flags for side-specific naming (LeftOption etc.).
+    @State private var singleModifierSource: (UInt16, UInt64)?
 
     var body: some View {
         Button(action: toggleRecording) {
@@ -88,6 +99,10 @@ struct KeyRecorderView: View {
 
     private func stopRecording() {
         isRecording = false
+        pendingModifierTask?.cancel()
+        pendingModifierTask = nil
+        maxModifierSet = []
+        singleModifierSource = nil
         if let monitor = localMonitor {
             NSEvent.removeMonitor(monitor)
             localMonitor = nil
@@ -98,9 +113,69 @@ struct KeyRecorderView: View {
     /// Handle modifier event forwarded from HotkeyTapState's CGEventTap.
     private func handleModifierFromTap(keyCode: UInt16, flagsRaw: UInt64) {
         guard isRecording else { return }
-        if let name = modifierOnlyNameFromRaw(keyCode: keyCode, flagsRaw: flagsRaw) {
-            shortcut = name
-            stopRecording()
+        updateModifierTracking(keyCode: keyCode, flagsRaw: flagsRaw)
+    }
+
+    /// Core modifier tracker. Keeps growing `maxModifierSet` while the user
+    /// holds down keys; commits on release (set shrinks). Supports both
+    /// single modifier (Fn) and combos (Fn+Alt).
+    private func updateModifierTracking(keyCode: UInt16, flagsRaw: UInt64) {
+        let current = activeModifierNames(flagsRaw: flagsRaw)
+
+        if current.count > maxModifierSet.count {
+            // Pressing more: accumulate, schedule a deferred "fallback" commit
+            // so that if the user never releases (or if nothing else happens)
+            // the shortcut is still captured.
+            maxModifierSet = current
+            singleModifierSource = (current.count == 1)
+                ? (keyCode, flagsRaw)
+                : nil
+            scheduleFallbackModifierCommit()
+        } else if current.count < maxModifierSet.count && !maxModifierSet.isEmpty {
+            // First release detected → commit the peak set we observed.
+            commitModifierSet()
+        }
+    }
+
+    /// Names of modifiers currently active in a flagsRaw bitmask.
+    private func activeModifierNames(flagsRaw: UInt64) -> Set<String> {
+        var s = Set<String>()
+        if (flagsRaw & 0x800000) != 0 { s.insert("Fn") }
+        if (flagsRaw & 0x100000) != 0 { s.insert("Cmd") }
+        if (flagsRaw & 0x80000)  != 0 { s.insert("Alt") }
+        if (flagsRaw & 0x40000)  != 0 { s.insert("Control") }
+        if (flagsRaw & 0x20000)  != 0 { s.insert("Shift") }
+        return s
+    }
+
+    /// Format peak modifier set into a canonical, stable-ordered string.
+    /// For single modifiers, prefers side-specific naming (LeftOption etc.)
+    /// when a keyCode source is known.
+    private func formatModifierSet(_ s: Set<String>) -> String {
+        if s.count == 1, let (keyCode, flagsRaw) = singleModifierSource,
+           let specific = modifierOnlyNameFromRaw(keyCode: keyCode, flagsRaw: flagsRaw) {
+            return specific
+        }
+        let order = ["Fn", "Control", "Alt", "Shift", "Cmd"]
+        return order.filter { s.contains($0) }.joined(separator: "+")
+    }
+
+    private func commitModifierSet() {
+        pendingModifierTask?.cancel()
+        pendingModifierTask = nil
+        guard isRecording, !maxModifierSet.isEmpty else { return }
+        shortcut = formatModifierSet(maxModifierSet)
+        stopRecording()
+    }
+
+    /// If the user holds modifiers forever without releasing, commit after
+    /// a short fallback delay so the recorder doesn't appear stuck.
+    private func scheduleFallbackModifierCommit() {
+        pendingModifierTask?.cancel()
+        pendingModifierTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled, isRecording else { return }
+            commitModifierSet()
         }
     }
 
@@ -134,17 +209,23 @@ struct KeyRecorderView: View {
         }
 
         if event.type == .keyDown {
+            // A real key arrived — cancel any pending modifier-alone commit
+            // so the combo (Cmd+J etc.) wins.
+            pendingModifierTask?.cancel()
+            pendingModifierTask = nil
+            maxModifierSet = []
+            singleModifierSource = nil
+
             let combo = formatKeyDown(event)
             if !combo.isEmpty {
                 shortcut = combo
                 stopRecording()
             }
         } else if event.type == .flagsChanged {
-            // Modifier-alone keys: Fn (63), right Command (54), etc.
-            if let modifierName = modifierOnlyName(event: event) {
-                shortcut = modifierName
-                stopRecording()
-            }
+            // Delegate to the shared tracker so modifier combos (Fn+Alt etc.)
+            // aggregate across events and commit on release.
+            let raw = UInt64(event.modifierFlags.rawValue)
+            updateModifierTracking(keyCode: event.keyCode, flagsRaw: raw)
         }
     }
 

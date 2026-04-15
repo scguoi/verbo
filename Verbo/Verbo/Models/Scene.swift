@@ -4,11 +4,17 @@ import Foundation
 
 public struct SceneHotkey: Codable, Equatable, Sendable {
     public var toggleRecord: String?
-    public var pushToTalk: String?
 
-    public init(toggleRecord: String? = nil, pushToTalk: String? = nil) {
+    public init(toggleRecord: String? = nil) {
         self.toggleRecord = toggleRecord
-        self.pushToTalk = pushToTalk
+    }
+
+    // Custom decode so legacy JSON with a "pushToTalk" field still loads.
+    private enum CodingKeys: String, CodingKey { case toggleRecord }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.toggleRecord = try c.decodeIfPresent(String.self, forKey: .toggleRecord)
     }
 }
 

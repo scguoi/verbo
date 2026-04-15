@@ -148,9 +148,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        // Version
+        // Version — read from Info.plist so the menu stays in sync with builds.
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let versionItem = NSMenuItem(
-            title: "Verbo v0.1.0",
+            title: "Verbo v\(version)",
             action: nil,
             keyEquivalent: ""
         )

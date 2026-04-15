@@ -98,9 +98,6 @@ final class FloatingViewModel {
     func startRecording() {
         guard isIdle || pipelineState.isDone || pipelineState.isError else { return }
 
-        let t0 = DispatchTime.now().uptimeNanoseconds
-        fileLog("[start] enter startRecording")
-
         // Cancel any lingering previous pipeline
         pipelineTask?.cancel()
         pipelineTask = nil
@@ -118,23 +115,14 @@ final class FloatingViewModel {
         pipelineState = .recording
         recordingDuration = 0
 
-        fileLog("[start] pipelineState=.recording t+\(elapsedMs(since: t0))ms")
-
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.recordingDuration += 0.1 }
         }
 
         Task {
-            fileLog("[start] Task begin t+\(elapsedMs(since: t0))ms")
             let audioStream = await audioRecorder.start()
-            fileLog("[start] audioRecorder.start() returned t+\(elapsedMs(since: t0))ms")
             await runPipeline(audioStream: audioStream)
         }
-    }
-
-    /// Milliseconds elapsed since an uptime-nanosecond anchor.
-    nonisolated private func elapsedMs(since startNs: UInt64) -> Int {
-        Int((DispatchTime.now().uptimeNanoseconds &- startNs) / 1_000_000)
     }
 
     func stopRecording() {
@@ -230,7 +218,17 @@ final class FloatingViewModel {
                         let latencyMs: Int? = stopRequestedAt.map {
                             Int(Date().timeIntervalSince($0) * 1000)
                         }
-                        fileLog("[pipeline.done] resultLen=\(result.count) latencyMs=\(latencyMs ?? -1)")
+
+                        // Empty result is a recognition failure, not a
+                        // success: don't type empty into the focused app and
+                        // don't write a noise-only history record.
+                        let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmed.isEmpty {
+                            pipelineState = .error(
+                                message: String(localized: "pipeline.error.no_speech")
+                            )
+                            continue
+                        }
 
                         lastResult = result
                         lastSource = source
@@ -241,19 +239,12 @@ final class FloatingViewModel {
                         // active before typing. A fixed-duration sleep is not enough for
                         // long recordings, because macOS may have put the target into a
                         // background state that takes 100–500 ms to wake up.
-                        let frontmostBefore = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
-                        fileLog("[pipeline.done] target=\(targetApplication?.bundleIdentifier ?? "nil") frontmost=\(frontmostBefore)")
                         if let target = targetApplication,
                            target.bundleIdentifier != Bundle.main.bundleIdentifier {
                             await activateAndWait(for: target, timeout: .milliseconds(600))
-                        } else {
-                            fileLog("[pipeline.done] SKIP activation (target nil or self)")
                         }
 
-                        let frontmostBeforeOutput = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
-                        fileLog("[pipeline.done] outputting mode=\(outputMode) frontmost=\(frontmostBeforeOutput)")
                         let status = await textOutputService.output(text: result, mode: outputMode)
-                        fileLog("[pipeline.done] status=\(status)")
                         let record = HistoryRecord(
                             id: UUID(),
                             timestamp: Date(),
@@ -284,31 +275,20 @@ final class FloatingViewModel {
         for target: NSRunningApplication,
         timeout: Duration
     ) async {
-        let targetBundle = target.bundleIdentifier ?? "?"
-        fileLog("[activate] start target=\(targetBundle) active=\(target.isActive) terminated=\(target.isTerminated)")
         target.activate()
 
         let start = Date()
         let timeoutSecs = Double(timeout.components.seconds) +
             Double(timeout.components.attoseconds) * 1e-18
         while Date().timeIntervalSince(start) < timeoutSecs {
-            let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-            if frontmost == target.bundleIdentifier {
-                let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
-                fileLog("[activate] ok target=\(targetBundle) elapsedMs=\(elapsedMs)")
+            if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == target.bundleIdentifier {
+                // Give the target one more tick to actually accept key events.
                 try? await Task.sleep(for: .milliseconds(20))
                 return
             }
             try? await Task.sleep(for: .milliseconds(15))
         }
-        let frontmostBundle = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
-        fileLog("[activate] TIMEOUT target=\(targetBundle) frontmost=\(frontmostBundle) terminated=\(target.isTerminated)")
-    }
-
-    /// Append a timestamped line to ~/.verbo/debug.log.
-    /// Format: `HH:mm:ss.SSS msg` — lets us correlate stages across components.
-    private nonisolated func fileLog(_ msg: String) {
-        DebugLog.write(msg)
+        Log.ui.error("Target \(target.bundleIdentifier ?? "?", privacy: .public) failed to become frontmost within timeout")
     }
 
     private func scheduleCollapse() {

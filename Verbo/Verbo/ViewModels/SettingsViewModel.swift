@@ -1,6 +1,15 @@
 import Foundation
 import Observation
 
+// MARK: - SaveToast
+
+/// Transient feedback shown in the Settings window after a persist attempt.
+struct SaveToast: Equatable, Identifiable {
+    let id = UUID()
+    let isSuccess: Bool
+    let message: String
+}
+
 // MARK: - SettingsViewModel
 
 @Observable
@@ -14,6 +23,10 @@ final class SettingsViewModel {
     var editingScene: Scene?
     var isEditingScene: Bool = false
 
+    /// Latest save result. Views observe this and render a transient toast.
+    var saveToast: SaveToast?
+    private var toastDismissTask: Task<Void, Never>?
+
     // MARK: - Init
 
     init(configManager: ConfigManager) {
@@ -24,19 +37,48 @@ final class SettingsViewModel {
 
     var config: AppConfig { configManager.config }
 
+    // MARK: - Persistence Helper
+
+    /// Persist current config and publish a localized success/error toast.
+    /// All save operations in this view model go through this helper so
+    /// every settings-screen change gets consistent user feedback.
+    private func persist() {
+        do {
+            try configManager.save()
+            showToast(success: true,
+                      messageKey: "settings.save.success")
+        } catch {
+            Log.config.error("Settings save failed: \(error.localizedDescription, privacy: .public)")
+            showToast(success: false,
+                      messageKey: "settings.save.failure")
+        }
+    }
+
+    private func showToast(success: Bool, messageKey: String.LocalizationValue) {
+        saveToast = SaveToast(
+            isSuccess: success,
+            message: String(localized: messageKey)
+        )
+        toastDismissTask?.cancel()
+        toastDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.8))
+            guard !Task.isCancelled else { return }
+            await MainActor.run { self?.saveToast = nil }
+        }
+    }
+
     // MARK: - Scene Operations
 
     func selectSceneAsDefault(_ sceneId: String) {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: sceneId,
-            globalHotkey: config.globalHotkey,
             scenes: config.scenes,
             providers: config.providers,
             general: config.general
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
     }
 
     func startEditingScene(_ scene: Scene) {
@@ -51,13 +93,12 @@ final class SettingsViewModel {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: config.defaultScene,
-            globalHotkey: config.globalHotkey,
             scenes: newScenes,
             providers: config.providers,
             general: config.general
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
         editingScene = nil
         isEditingScene = false
     }
@@ -82,13 +123,12 @@ final class SettingsViewModel {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: config.defaultScene,
-            globalHotkey: config.globalHotkey,
             scenes: config.scenes + [newScene],
             providers: config.providers,
             general: config.general
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
         return newScene
     }
 
@@ -100,13 +140,12 @@ final class SettingsViewModel {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: newDefault,
-            globalHotkey: config.globalHotkey,
             scenes: newScenes,
             providers: config.providers,
             general: config.general
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
     }
 
     // MARK: - Provider Operations
@@ -118,13 +157,12 @@ final class SettingsViewModel {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: config.defaultScene,
-            globalHotkey: config.globalHotkey,
             scenes: config.scenes,
             providers: newProviders,
             general: config.general
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
     }
 
     func updateLLMProvider(_ name: String, _ updated: LLMProviderConfig) {
@@ -134,13 +172,12 @@ final class SettingsViewModel {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: config.defaultScene,
-            globalHotkey: config.globalHotkey,
             scenes: config.scenes,
             providers: newProviders,
             general: config.general
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
     }
 
     // MARK: - General Operations
@@ -149,12 +186,11 @@ final class SettingsViewModel {
         let newConfig = AppConfig(
             version: config.version,
             defaultScene: config.defaultScene,
-            globalHotkey: config.globalHotkey,
             scenes: config.scenes,
             providers: config.providers,
             general: updated
         )
         configManager.update(newConfig)
-        try? configManager.save()
+        persist()
     }
 }

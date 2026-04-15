@@ -43,5 +43,43 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
         }
         .frame(minWidth: 600, minHeight: 450)
+        .overlay(alignment: .bottom) {
+            if let toast = viewModel.saveToast {
+                SaveToastView(toast: toast)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .id(toast.id)
+            }
+        }
+        .animation(DesignTokens.Animation.standard, value: viewModel.saveToast)
+    }
+}
+
+// MARK: - SaveToastView
+
+private struct SaveToastView: View {
+    let toast: SaveToast
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: toast.isSuccess
+                  ? "checkmark.circle.fill"
+                  : "xmark.octagon.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(toast.isSuccess
+                                 ? Color.green
+                                 : DesignTokens.Colors.errorCrimson)
+            Text(toast.message)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(DesignTokens.Colors.borderAdaptive, lineWidth: 0.5)
+        )
+        .shadow(color: DesignTokens.Shadows.ring, radius: 8, x: 0, y: 2)
     }
 }

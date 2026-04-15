@@ -23,18 +23,6 @@ struct AppConfigTests {
         #expect(config.scenes.count == 3)
     }
 
-    @Test("Default config globalHotkey toggleRecord is CommandOrControl+Shift+H")
-    func defaultConfigHotkey() {
-        let config = AppConfig.default
-        #expect(config.globalHotkey.toggleRecord == "CommandOrControl+Shift+H")
-    }
-
-    @Test("Default config globalHotkey pushToTalk is CommandOrControl+Shift+G")
-    func defaultConfigPushToTalk() {
-        let config = AppConfig.default
-        #expect(config.globalHotkey.pushToTalk == "CommandOrControl+Shift+G")
-    }
-
     @Test("Default providers has iflytek STT provider")
     func defaultProvidersStt() {
         let config = AppConfig.default

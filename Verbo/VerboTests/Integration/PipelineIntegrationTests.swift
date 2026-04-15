@@ -233,7 +233,6 @@ struct ManagerLifecycleTests {
         updated = AppConfig(
             version: updated.version,
             defaultScene: "polish",
-            globalHotkey: updated.globalHotkey,
             scenes: updated.scenes,
             providers: updated.providers,
             general: updated.general

@@ -346,6 +346,7 @@ final class IFlytekSTTAdapter: STTAdapter, @unchecked Sendable {
         let frame = try JSONDecoder().decode(SparkResponseFrame.self, from: data)
 
         guard frame.header.code == 0 else {
+            DebugLog.write("[stt] iFlytek error code=\(frame.header.code) msg=\(frame.header.message ?? "?")")
             throw IFlytekError.apiError(
                 code: frame.header.code,
                 message: frame.header.message ?? "Unknown error"
