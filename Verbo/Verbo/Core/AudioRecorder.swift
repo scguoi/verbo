@@ -212,21 +212,45 @@ actor AudioRecorder {
     private var lastConfiguredChannels: AVAudioChannelCount = 0
 
     /// Called when AVAudioEngineConfigurationChange fires. AVFoundation has
-    /// already stopped the engine; we rebuild + restart on the new format
-    /// while keeping the upstream stream continuation alive. Skips
-    /// reconfigure when the input format is unchanged (which indicates a
-    /// spurious notification from our own setup path).
+    /// already stopped the engine when this fires — we MUST restart it or
+    /// audio stops flowing (tap block never fires again). Two paths:
+    /// 1. Format unchanged → just restart the existing engine (cheap).
+    /// 2. Format changed → recreate the engine, reattach sink, restart.
+    ///
+    /// The upstream stream continuation stays alive across both so the
+    /// consumer doesn't see a gap.
     private func handleConfigurationChange() {
         guard isRecording else { return }
 
         let currentFormat = engine.inputNode.outputFormat(forBus: 0)
-        if currentFormat.sampleRate == lastConfiguredSampleRate,
-           currentFormat.channelCount == lastConfiguredChannels {
-            DebugLog.write("[audio] configChange — format unchanged, skipping reconfigure")
+        let formatUnchanged = currentFormat.sampleRate == lastConfiguredSampleRate
+            && currentFormat.channelCount == lastConfiguredChannels
+
+        if formatUnchanged {
+            // Same format, just restart the current engine. Skipping the
+            // restart here was the cause of recordings silently getting
+            // zero tap callbacks: AVFoundation stops the engine on this
+            // notification regardless of whether the format actually
+            // changed, and leaving it stopped means no audio.
+            if engine.isRunning {
+                DebugLog.write("[audio] configChange — format unchanged, engine still running, skipping")
+                return
+            }
+            DebugLog.write("[audio] configChange — format unchanged, restarting engine in-place")
+            do {
+                try engine.start()
+            } catch {
+                DebugLog.write("[audio] restart failed: \(error.localizedDescription) — falling back to full reconfigure")
+                fullReconfigure()
+            }
             return
         }
 
-        DebugLog.write("[audio] AVAudioEngineConfigurationChange — reconfiguring (\(lastConfiguredSampleRate)→\(currentFormat.sampleRate))")
+        DebugLog.write("[audio] AVAudioEngineConfigurationChange — format changed (\(lastConfiguredSampleRate)→\(currentFormat.sampleRate)), reconfiguring")
+        fullReconfigure()
+    }
+
+    private func fullReconfigure() {
         let t0 = DispatchTime.now().uptimeNanoseconds
         converterBox = ConverterBox()
         do {
