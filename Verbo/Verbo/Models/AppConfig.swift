@@ -78,6 +78,7 @@ public struct GeneralConfig: Codable, Equatable, Sendable {
     public var launchAtStartup: Bool
     public var uiLanguage: UILanguage
     public var historyRetentionDays: Int?
+    public var showTranscriptPreview: Bool
 
     public init(
         outputMode: OutputMode = .simulate,
@@ -85,7 +86,8 @@ public struct GeneralConfig: Codable, Equatable, Sendable {
         copyOnDismiss: Bool = true,
         launchAtStartup: Bool = false,
         uiLanguage: UILanguage = .system,
-        historyRetentionDays: Int? = 90
+        historyRetentionDays: Int? = 90,
+        showTranscriptPreview: Bool = true
     ) {
         self.outputMode = outputMode
         self.autoCollapseDelay = autoCollapseDelay
@@ -93,6 +95,7 @@ public struct GeneralConfig: Codable, Equatable, Sendable {
         self.launchAtStartup = launchAtStartup
         self.uiLanguage = uiLanguage
         self.historyRetentionDays = historyRetentionDays
+        self.showTranscriptPreview = showTranscriptPreview
     }
 
     public init(from decoder: Decoder) throws {
@@ -103,6 +106,7 @@ public struct GeneralConfig: Codable, Equatable, Sendable {
         launchAtStartup = try container.decodeIfPresent(Bool.self, forKey: .launchAtStartup) ?? false
         uiLanguage = try container.decodeIfPresent(UILanguage.self, forKey: .uiLanguage) ?? .system
         historyRetentionDays = try container.decodeIfPresent(Int.self, forKey: .historyRetentionDays) ?? 90
+        showTranscriptPreview = try container.decodeIfPresent(Bool.self, forKey: .showTranscriptPreview) ?? true
     }
 }
 

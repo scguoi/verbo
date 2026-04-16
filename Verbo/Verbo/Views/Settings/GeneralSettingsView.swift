@@ -60,6 +60,27 @@ struct GeneralSettingsView: View {
                 }
             }
 
+            // Display
+            Section(String(localized: "settings.general.display_section")) {
+                Toggle(
+                    String(localized: "settings.general.show_transcript_preview"),
+                    isOn: Binding(
+                        get: { viewModel.config.general.showTranscriptPreview },
+                        set: { show in
+                            let updated = GeneralConfig(
+                                outputMode: viewModel.config.general.outputMode,
+                                autoCollapseDelay: viewModel.config.general.autoCollapseDelay,
+                                launchAtStartup: viewModel.config.general.launchAtStartup,
+                                uiLanguage: viewModel.config.general.uiLanguage,
+                                historyRetentionDays: viewModel.config.general.historyRetentionDays,
+                                showTranscriptPreview: show
+                            )
+                            viewModel.updateGeneral(updated)
+                        }
+                    )
+                )
+            }
+
             // Language
             Section(String(localized: "settings.general.language_section")) {
                 Picker(

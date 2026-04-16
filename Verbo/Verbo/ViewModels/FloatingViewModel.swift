@@ -87,6 +87,21 @@ final class FloatingViewModel {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
+    /// The partial transcript to show in the preview bubble below the pill.
+    /// Non-nil only when the user has enabled the preview AND the pipeline
+    /// is in a state that carries partial text.
+    var partialTranscript: String? {
+        guard configManager?.config.general.showTranscriptPreview == true else { return nil }
+        switch pipelineState {
+        case .transcribing(let partial):
+            return partial.isEmpty ? nil : partial
+        case .processing(_, let partial):
+            return partial.isEmpty ? nil : partial
+        default:
+            return nil
+        }
+    }
+
     // MARK: - Actions
 
     var isActive: Bool { isRecording || isTranscribing }

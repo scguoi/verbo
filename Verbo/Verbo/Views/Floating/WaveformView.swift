@@ -5,10 +5,10 @@ struct WaveformView: View {
     let barCount: Int
     let color: Color
 
-    private let barWidth: CGFloat = 2.5
-    private let barSpacing: CGFloat = 2.5
+    private let barWidth: CGFloat = 2
+    private let barSpacing: CGFloat = 1.5
     private let minHeight: CGFloat = 3
-    private let maxHeight: CGFloat = 36
+    private let maxHeight: CGFloat = 20
 
     init(levels: [Float], barCount: Int = 13, color: Color = DesignTokens.Colors.terracotta) {
         self.levels = levels

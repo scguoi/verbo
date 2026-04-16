@@ -6,7 +6,9 @@ final class FloatingPanel: NSPanel {
     /// Panel dimensions. Panel is larger than the pill so the drop shadow
     /// has room to render beyond the pill's rounded rectangle.
     static let panelWidth: CGFloat = 320
-    static let panelHeight: CGFloat = 96
+    /// Tall enough to fit pill + transcript preview bubble + shadow.
+    /// Content aligns to the bottom; unused space is transparent.
+    static let panelHeight: CGFloat = 320
 
     /// Vertical offset from the bottom of the visible screen area.
     /// Puts the pill comfortably above the dock without sitting on it.

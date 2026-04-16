@@ -3,26 +3,21 @@ import CoreAudio
 
 // MARK: - AudioRecorder
 
-/// Records a single session via `AVAudioRecorder` to a temp WAV file, then
-/// (on stop) reads the file, converts Float32 → Int16, and yields the PCM
-/// chunks on the AsyncStream returned by `start()`.
-///
-/// Why AVAudioRecorder instead of AVAudioEngine:
-/// - OpenSuperWhisper, Vocorize, AudioWhisper — three production macOS
-///   dictation apps — all use this path. It handles AirPods HFP/A2DP
-///   negotiation, microphone volume, and format conversion internally.
-/// - `AVAudioEngine` on macOS is a minefield for recording: mainMixer
-///   doesn't auto-convert formats, inputNode needs a render target to
-///   pump, `inputFormat(forBus:)` is stale until HAL settles, Bluetooth
-///   devices don't unbind cleanly, etc. FluidVoice — the one dictation app
-///   using it — has 2800 lines of workarounds in its ASRService alone.
+/// Records via `AVAudioRecorder` to a temp WAV file AND simultaneously
+/// tails the growing file to yield 16 kHz Int16 mono PCM chunks in
+/// real-time. This gives iFlytek partial results while the user is still
+/// speaking, without depending on AVAudioEngine (which is unreliable
+/// with AirPods on macOS).
 actor AudioRecorder {
 
     // MARK: - Constants
 
     /// 40 ms at 16 kHz 16-bit mono = 16000 × 0.04 × 2 = 1280 bytes.
-    /// Matches iFlytek Spark IAT's expected frame cadence.
     static let chunkSize = 1280
+
+    /// WAV header size for our specific format (Linear PCM). Standard
+    /// RIFF header = 44 bytes for single-format uncompressed PCM.
+    private static let wavHeaderSize: UInt64 = 44
 
     static let levelCount = 20
 
@@ -31,10 +26,8 @@ actor AudioRecorder {
     private var recorder: AVAudioRecorder?
     private var streamContinuation: AsyncStream<Data>.Continuation?
     private var levelPollTask: Task<Void, Never>?
+    private var streamingTask: Task<Void, Never>?
     private(set) var isRecording = false
-
-    /// Tracks the loudest sample seen in this recording session so the
-    /// visualization range auto-calibrates to any mic gain / distance.
     private var peakDB: Float = -45
 
     private let recordingURL: URL = {
@@ -43,17 +36,14 @@ actor AudioRecorder {
 
     // MARK: - Public Properties
 
-    /// Sliding window of audio amplitude samples, updated every ~100 ms
-    /// while recording. Consumed by the floating pill's visualizer.
     private(set) var audioLevels: [Float] = Array(repeating: 0, count: AudioRecorder.levelCount)
 
     // MARK: - Start
 
-    /// Begin a new recording session. Returns a stream that yields 40 ms
-    /// 16 kHz Int16 mono PCM chunks on stop — the stream does NOT yield
-    /// during recording (the file accumulates locally instead). On stop
-    /// the entire recording is read back from disk, converted, and
-    /// yielded rapidly, then the stream finishes.
+    /// Begin recording. Returns a stream that yields 40 ms 16 kHz Int16
+    /// mono PCM chunks IN REAL-TIME while the user is still speaking.
+    /// The stream finishes when `stop()` is called and any remaining
+    /// bytes have been flushed.
     func start() -> AsyncStream<Data> {
         let t0 = DispatchTime.now().uptimeNanoseconds
         DebugLog.write("[audio] start() enter")
@@ -61,11 +51,6 @@ actor AudioRecorder {
         let authStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         DebugLog.write("[audio] mic TCC=\(Self.authName(authStatus))")
         Self.logDefaultInputDevice()
-
-        // If the system default input is a virtual / loopback capture
-        // driver, override it to a real mic BEFORE starting the recorder.
-        // AVAudioRecorder always records from the current system default,
-        // so this is the only hook we have to avoid iFlyrec et al.
         Self.overrideDefaultInputIfVirtual()
 
         audioLevels = Array(repeating: 0, count: Self.levelCount)
@@ -75,14 +60,8 @@ actor AudioRecorder {
             self.streamContinuation = continuation
         }
 
-        // Wipe any leftover file from a previous session so stop() never
-        // reads stale audio on a failed start.
         try? FileManager.default.removeItem(at: recordingURL)
 
-        // Vocorize's proven settings: 16 kHz mono Float32 little-endian.
-        // AVAudioRecorder handles resampling + downmixing from whatever
-        // format the hardware actually delivers (including AirPods' 24 kHz
-        // HFP or 48 kHz A2DP), so we don't have to.
         let settings: [String: Any] = [
             AVFormatIDKey: Int(kAudioFormatLinearPCM),
             AVSampleRateKey: 16000.0,
@@ -111,7 +90,8 @@ actor AudioRecorder {
             recorder = newRecorder
             isRecording = true
             startLevelPolling()
-            DebugLog.write("[audio] recording started t+\(Self.ms(t0))ms → \(recordingURL.lastPathComponent)")
+            startStreamingFromFile()
+            DebugLog.write("[audio] recording started t+\(Self.ms(t0))ms")
         } catch {
             DebugLog.write("[audio] AVAudioRecorder init failed: \(error.localizedDescription)")
             streamContinuation?.finish()
@@ -123,12 +103,8 @@ actor AudioRecorder {
 
     // MARK: - Stop
 
-    /// Stop the recording, read the WAV file, convert Float32 → Int16,
-    /// yield all chunks on the stream, then finish it. Returns any
-    /// sub-chunk remainder (never used by our caller but preserved for
-    /// AudioRecording protocol compatibility).
     func stop() -> Data {
-        guard let rec = recorder else {
+        guard recorder != nil else {
             DebugLog.write("[audio] stop() — no active recorder, noop")
             streamContinuation?.finish()
             streamContinuation = nil
@@ -136,33 +112,119 @@ actor AudioRecorder {
         }
 
         let t0 = DispatchTime.now().uptimeNanoseconds
-        rec.stop()
+        recorder?.stop()
         recorder = nil
         isRecording = false
         levelPollTask?.cancel()
         levelPollTask = nil
 
-        let pcm = Self.readWavAsInt16Mono16k(url: recordingURL)
-        DebugLog.write("[audio] stop() wav bytes=\(pcm.count) (\(pcm.count / Self.chunkSize) chunks)")
-
-        var yielded = 0
-        var offset = 0
-        while offset + Self.chunkSize <= pcm.count {
-            let chunk = pcm.subdata(in: offset..<(offset + Self.chunkSize))
-            streamContinuation?.yield(chunk)
-            yielded += 1
-            offset += Self.chunkSize
-        }
-
-        streamContinuation?.finish()
-        streamContinuation = nil
-
-        DebugLog.write("[audio] stop() yielded=\(yielded) chunks t+\(Self.ms(t0))ms")
-
-        // Clean up the temp file — we've already streamed its contents.
-        try? FileManager.default.removeItem(at: recordingURL)
+        // The streaming task detects isRecording == false, flushes
+        // remaining bytes, and finishes the stream. We don't finish
+        // it here to avoid a race.
+        DebugLog.write("[audio] stop() t+\(Self.ms(t0))ms — waiting for streaming task to flush")
 
         return Data()
+    }
+
+    // MARK: - Real-time file tailing
+
+    /// Periodically reads new bytes from the growing WAV file, converts
+    /// Float32 → Int16, and yields 1280-byte chunks on the stream. This
+    /// runs concurrently with AVAudioRecorder writing to the same file.
+    private func startStreamingFromFile() {
+        streamingTask?.cancel()
+        streamingTask = Task { [weak self] in
+            guard let self else { return }
+
+            // Give the recorder a moment to write the WAV header.
+            try? await Task.sleep(for: .milliseconds(100))
+
+            let url = self.recordingURL
+            guard let fileHandle = try? FileHandle(forReadingFrom: url) else {
+                DebugLog.write("[audio] streaming: cannot open file for reading")
+                await self.finishStream()
+                return
+            }
+            defer { try? fileHandle.close() }
+
+            // Skip the 44-byte WAV header.
+            try? fileHandle.seek(toOffset: Self.wavHeaderSize)
+            var readOffset = Self.wavHeaderSize
+            var int16Buffer = Data()
+            var totalYielded = 0
+
+            while true {
+                let stillRecording = await self.isRecording
+
+                // Read whatever new bytes the recorder has written.
+                try? fileHandle.seek(toOffset: readOffset)
+                let newData = fileHandle.readDataToEndOfFile()
+
+                if newData.count >= 4 {
+                    // Convert Float32 → Int16 and accumulate.
+                    let int16Chunk = Self.float32ToInt16(newData)
+                    int16Buffer.append(int16Chunk)
+                    readOffset += UInt64(newData.count)
+
+                    // Yield complete 1280-byte chunks.
+                    while int16Buffer.count >= Self.chunkSize {
+                        let chunk = int16Buffer.prefix(Self.chunkSize)
+                        await self.yieldChunk(Data(chunk))
+                        totalYielded += 1
+                        int16Buffer = int16Buffer.dropFirst(Self.chunkSize)
+                    }
+                }
+
+                if !stillRecording {
+                    // Recorder stopped. Do one final read to catch any
+                    // bytes written between our last poll and stop().
+                    try? fileHandle.seek(toOffset: readOffset)
+                    let finalData = fileHandle.readDataToEndOfFile()
+                    if finalData.count >= 4 {
+                        int16Buffer.append(Self.float32ToInt16(finalData))
+                        while int16Buffer.count >= Self.chunkSize {
+                            let chunk = int16Buffer.prefix(Self.chunkSize)
+                            await self.yieldChunk(Data(chunk))
+                            totalYielded += 1
+                            int16Buffer = int16Buffer.dropFirst(Self.chunkSize)
+                        }
+                    }
+                    break
+                }
+
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+
+            DebugLog.write("[audio] streaming done: yielded=\(totalYielded) chunks")
+            await self.finishStream()
+
+            // Clean up the temp file.
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    private func yieldChunk(_ data: Data) {
+        streamContinuation?.yield(data)
+    }
+
+    private func finishStream() {
+        streamContinuation?.finish()
+        streamContinuation = nil
+    }
+
+    /// Convert a block of little-endian Float32 samples to Int16.
+    private static func float32ToInt16(_ data: Data) -> Data {
+        let floatCount = data.count / 4
+        guard floatCount > 0 else { return Data() }
+        return data.withUnsafeBytes { raw in
+            let floats = raw.bindMemory(to: Float.self)
+            var int16s = [Int16](repeating: 0, count: floatCount)
+            for i in 0..<floatCount {
+                let clamped = max(-1.0, min(1.0, floats[i]))
+                int16s[i] = Int16(clamped * 32767.0)
+            }
+            return int16s.withUnsafeBufferPointer { Data(buffer: $0) }
+        }
     }
 
     // MARK: - Level polling
@@ -182,16 +244,10 @@ actor AudioRecorder {
         rec.updateMeters()
         let powerDB = rec.averagePower(forChannel: 0)
 
-        // Track the loudest sample in this session so the range auto-
-        // calibrates. Fixed floor at -45 dBFS — from real recordings
-        // this sits right between "pause between words" (-44 to -52 dB)
-        // and "quiet consonant" (-35 to -40 dB), giving clean zero
-        // during gaps. The range = [floor, peak] expands automatically
-        // as the user speaks louder.
         if powerDB > peakDB { peakDB = powerDB }
 
         let floor: Float = -45
-        let range = max(peakDB - floor, 10)  // at least 10 dB range
+        let range = max(peakDB - floor, 10)
         let level: Float
         if powerDB < floor {
             level = 0
@@ -199,57 +255,10 @@ actor AudioRecorder {
             level = min(1, max(0, (powerDB - floor) / range))
         }
 
-        // Sliding window: each bar is one historical sample.
         var next = audioLevels
         next.removeFirst()
         next.append(level)
         audioLevels = next
-    }
-
-    // MARK: - WAV reading (Float32 → Int16)
-
-    /// Read the recorded WAV as 16 kHz mono Int16 little-endian PCM.
-    /// Uses AVAudioFile instead of hand-parsing WAV headers because
-    /// AVAudioFile correctly handles all RIFF chunk layouts.
-    private static func readWavAsInt16Mono16k(url: URL) -> Data {
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            DebugLog.write("[audio] WAV missing at \(url.path)")
-            return Data()
-        }
-        do {
-            let file = try AVAudioFile(forReading: url)
-            let frameCount = AVAudioFrameCount(file.length)
-            guard frameCount > 0 else {
-                DebugLog.write("[audio] WAV has zero frames")
-                return Data()
-            }
-            // AVAudioFile's processingFormat is always Float32 deinterleaved.
-            let format = file.processingFormat
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-                DebugLog.write("[audio] AVAudioPCMBuffer alloc failed")
-                return Data()
-            }
-            try file.read(into: buffer)
-            guard let channelData = buffer.floatChannelData else {
-                DebugLog.write("[audio] WAV has no float channel data")
-                return Data()
-            }
-
-            let count = Int(buffer.frameLength)
-            let channel0 = channelData[0]
-
-            // Convert Float32 [-1, 1] → Int16 [-32768, 32767].
-            var int16 = [Int16](repeating: 0, count: count)
-            for i in 0..<count {
-                let f = channel0[i]
-                let clamped = max(-1.0, min(1.0, f))
-                int16[i] = Int16(clamped * 32767.0)
-            }
-            return int16.withUnsafeBufferPointer { Data(buffer: $0) }
-        } catch {
-            DebugLog.write("[audio] WAV read error: \(error.localizedDescription)")
-            return Data()
-        }
     }
 
     // MARK: - Diagnostics
@@ -289,20 +298,12 @@ actor AudioRecorder {
 
     // MARK: - Virtual input device override
 
-    /// Blocklist of device-name substrings that identify virtual /
-    /// loopback audio capture drivers. These expose themselves as input
-    /// devices but record system output, not a real mic.
     private static let virtualDeviceNameFragments = [
         "iflyrec", "blackhole", "soundflower", "loopback",
         "vb-audio", "vb audio", "ishowu", "virtual",
         "screen capture", "aggregate",
     ]
 
-    /// If the system default input device is a virtual/loopback driver,
-    /// pick the best real mic on the system and set it as the system
-    /// default via CoreAudio HAL. This does change the user's system
-    /// setting, but only when the current default is clearly wrong for
-    /// dictation (same approach OpenSuperWhisper and Vocorize take).
     private static func overrideDefaultInputIfVirtual() {
         guard let currentID = defaultInputDeviceID() else { return }
         let currentName = deviceName(id: currentID) ?? ""
@@ -373,7 +374,6 @@ actor AudioRecorder {
             guard hasInputStreams(id: id) else { continue }
             let name = deviceName(id: id) ?? ""
             let score = scoreDevice(id: id, name: name)
-            DebugLog.write("[audio] candidate '\(name)' id=\(id) score=\(score)")
             if score < 0 { continue }
             if best == nil || score > best!.1 {
                 best = (id, score)
