@@ -3,16 +3,22 @@ import SwiftUI
 
 final class FloatingPanel: NSPanel {
 
-    /// Panel dimensions. Panel is larger than the pill so the drop shadow
-    /// has room to render beyond the pill's rounded rectangle.
     static let panelWidth: CGFloat = 320
-    /// Tall enough to fit pill + transcript preview bubble + shadow.
-    /// Content aligns to the bottom; unused space is transparent.
     static let panelHeight: CGFloat = 320
 
-    /// Vertical offset from the bottom of the visible screen area.
-    /// Puts the pill comfortably above the dock without sitting on it.
     private static let bottomMargin: CGFloat = 96
+    private static let dragThreshold: CGFloat = 3
+
+    // Drag tracking
+    private var dragStartScreenLocation: NSPoint = .zero
+    private var dragStartFrameOrigin: NSPoint = .zero
+    private var wasDragged = false
+
+    /// After a drag, stores the pill's position as a RELATIVE offset
+    /// from the screen's bottom-center default. On subsequent `show()`
+    /// calls, this offset is applied to whichever screen the mouse is
+    /// on — so the pill follows screens but remembers user adjustment.
+    private var dragOffsetFromDefault: NSPoint?
 
     init(contentView: NSView) {
         super.init(
@@ -21,29 +27,75 @@ final class FloatingPanel: NSPanel {
             backing: .buffered, defer: false
         )
         self.level = .floating
-        // Panel auto-positions on show; disable drag to keep it anchored.
+        self.isMovable = false
         self.isMovableByWindowBackground = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         self.backgroundColor = .clear
         self.isOpaque = false
-        self.hasShadow = false  // Pill renders its own SwiftUI shadow
+        self.hasShadow = false
         self.contentView = contentView
         self.isReleasedWhenClosed = false
         self.acceptsMouseMovedEvents = true
         self.hidesOnDeactivate = false
     }
 
-    // NEVER become key window — stealing focus breaks CGEvent keyboard input
-    // into the user's focused app (text gets sent to Finder fallback instead).
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    /// Show the panel centered horizontally near the bottom of the screen
-    /// the user is currently looking at (by mouse location), falling back
-    /// to the main screen. Call every time we show so the pill follows the
-    /// user across displays.
+    // MARK: - Drag vs Tap
+
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown:
+            dragStartScreenLocation = NSEvent.mouseLocation
+            dragStartFrameOrigin = frame.origin
+            wasDragged = false
+            super.sendEvent(event)
+
+        case .leftMouseDragged:
+            let current = NSEvent.mouseLocation
+            let dx = current.x - dragStartScreenLocation.x
+            let dy = current.y - dragStartScreenLocation.y
+            if !wasDragged && (abs(dx) > Self.dragThreshold || abs(dy) > Self.dragThreshold) {
+                wasDragged = true
+            }
+            if wasDragged {
+                setFrameOrigin(NSPoint(
+                    x: dragStartFrameOrigin.x + dx,
+                    y: dragStartFrameOrigin.y + dy
+                ))
+            }
+
+        case .leftMouseUp:
+            if wasDragged {
+                // Compute offset from where default position WOULD be
+                // on the current screen, so we can replay it on any screen.
+                let defaultOrigin = Self.defaultOrigin(for: NSEvent.mouseLocation)
+                dragOffsetFromDefault = NSPoint(
+                    x: frame.origin.x - defaultOrigin.x,
+                    y: frame.origin.y - defaultOrigin.y
+                )
+                wasDragged = false
+            } else {
+                super.sendEvent(event)
+            }
+
+        default:
+            super.sendEvent(event)
+        }
+    }
+
+    // MARK: - Show / Hide
+
+    /// Show the panel on the mouse's current screen, applying any
+    /// user drag offset. Always follows the active screen.
     func show() {
-        positionAtBottomCenter()
+        let origin = Self.defaultOrigin(for: NSEvent.mouseLocation)
+        if let offset = dragOffsetFromDefault {
+            setFrameOrigin(NSPoint(x: origin.x + offset.x, y: origin.y + offset.y))
+        } else {
+            setFrameOrigin(origin)
+        }
         orderFrontRegardless()
     }
 
@@ -51,12 +103,20 @@ final class FloatingPanel: NSPanel {
         orderOut(nil)
     }
 
-    private func positionAtBottomCenter() {
-        let mouseScreen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) }
-        guard let screen = mouseScreen ?? NSScreen.main ?? NSScreen.screens.first else { return }
+    func positionNearBottomRight() {
+        dragOffsetFromDefault = nil
+        show()
+    }
+
+    /// Compute the default bottom-center origin for the screen
+    /// containing the given point.
+    private static func defaultOrigin(for point: NSPoint) -> NSPoint {
+        let mouseScreen = NSScreen.screens.first { $0.frame.contains(point) }
+        let screen = mouseScreen ?? NSScreen.main ?? NSScreen.screens.first!
         let visible = screen.visibleFrame
-        let x = visible.midX - Self.panelWidth / 2
-        let y = visible.minY + Self.bottomMargin
-        setFrameOrigin(NSPoint(x: x, y: y))
+        return NSPoint(
+            x: visible.midX - panelWidth / 2,
+            y: visible.minY + bottomMargin
+        )
     }
 }
