@@ -22,7 +22,7 @@ struct FloatingPanelView: View {
             if viewModel.isRecording || viewModel.isTranscribing {
                 await viewModel.pollAudioLevels()
             }
-            try? await Task.sleep(for: .milliseconds(50))
+            try? await Task.sleep(for: .milliseconds(16))
         }
     }
 }

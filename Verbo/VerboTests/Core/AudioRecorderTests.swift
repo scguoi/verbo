@@ -14,15 +14,13 @@ struct AudioRecorderTests {
         #expect(isRecording == false)
     }
 
-    @Test("Target PCM format is 16kHz mono")
-    func targetFormatIs16KHzMono() {
-        let format = AudioRecorder.targetFormat
-        #expect(format.sampleRate == 16000)
-        #expect(format.channelCount == 1)
-    }
-
-    @Test("Chunk size is 1280 bytes")
+    @Test("Chunk size is 1280 bytes (40ms at 16 kHz Int16 mono)")
     func chunkSizeIs1280Bytes() {
         #expect(AudioRecorder.chunkSize == 1280)
+    }
+
+    @Test("Level window size is 20")
+    func levelWindowSizeIs20() {
+        #expect(AudioRecorder.levelCount == 20)
     }
 }

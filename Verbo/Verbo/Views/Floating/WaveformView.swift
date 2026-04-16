@@ -25,7 +25,7 @@ struct WaveformView: View {
             }
         }
         .frame(height: maxHeight)
-        .animation(.easeOut(duration: 0.08), value: levels)
+        .animation(.easeOut(duration: 0.03), value: levels)
     }
 
     private func barHeight(for index: Int) -> CGFloat {
@@ -33,7 +33,7 @@ struct WaveformView: View {
         let levelIndex = levels.count > 0 ? index * levels.count / barCount : 0
         let level: Float
         if levelIndex < levels.count {
-            level = min(levels[levelIndex] * 2.0, 1.0)
+            level = min(levels[levelIndex], 1.0)
         } else {
             level = 0
         }

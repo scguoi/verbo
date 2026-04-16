@@ -3,120 +3,117 @@ import CoreAudio
 
 // MARK: - AudioRecorder
 
+/// Records a single session via `AVAudioRecorder` to a temp WAV file, then
+/// (on stop) reads the file, converts Float32 → Int16, and yields the PCM
+/// chunks on the AsyncStream returned by `start()`.
+///
+/// Why AVAudioRecorder instead of AVAudioEngine:
+/// - OpenSuperWhisper, Vocorize, AudioWhisper — three production macOS
+///   dictation apps — all use this path. It handles AirPods HFP/A2DP
+///   negotiation, microphone volume, and format conversion internally.
+/// - `AVAudioEngine` on macOS is a minefield for recording: mainMixer
+///   doesn't auto-convert formats, inputNode needs a render target to
+///   pump, `inputFormat(forBus:)` is stale until HAL settles, Bluetooth
+///   devices don't unbind cleanly, etc. FluidVoice — the one dictation app
+///   using it — has 2800 lines of workarounds in its ASRService alone.
 actor AudioRecorder {
 
     // MARK: - Constants
 
-    static let targetFormat = AVAudioFormat(
-        commonFormat: .pcmFormatInt16,
-        sampleRate: 16000,
-        channels: 1,
-        interleaved: true
-    )!
-
-    /// 40ms at 16kHz 16-bit mono: 16000 samples/s * 0.04s * 2 bytes/sample = 1280 bytes
+    /// 40 ms at 16 kHz 16-bit mono = 16000 × 0.04 × 2 = 1280 bytes.
+    /// Matches iFlytek Spark IAT's expected frame cadence.
     static let chunkSize = 1280
+
+    static let levelCount = 20
 
     // MARK: - Private Properties
 
-    /// Recreated on every `start()` call (and on configuration-change reconfigure).
-    /// Reusing a single AVAudioEngine across multiple start/stop cycles has
-    /// proven fragile: in rapid start→stop→start sequences (user double-taps
-    /// the hotkey), `installTap` would throw `nullptr == Tap()` and SIGABRT
-    /// the app (Swift cannot catch ObjC exceptions). Starting fresh on each
-    /// recording trades ~100 ms of CoreAudio warmup for reliability.
-    private var engine = AVAudioEngine()
-    private(set) var isRecording = false
-    private var audioBuffer = Data()
+    private var recorder: AVAudioRecorder?
     private var streamContinuation: AsyncStream<Data>.Continuation?
-    /// Captured by the tap closure so it can lazily build (and rebuild on
-    /// format changes) an AVAudioConverter to the target 16 kHz Int16 mono.
-    private var converterBox = ConverterBox()
-    /// Counters surfaced on stop() so we can see whether audio is flowing.
-    private var tapCallbackCount = 0
-    private var chunksYielded = 0
-    /// Notification token for `.AVAudioEngineConfigurationChange`. AirPods
-    /// switching from A2DP to HFP fires this notification mid-session; we
-    /// must reconfigure the tap and restart the engine to recover.
-    nonisolated(unsafe) private var configChangeObserver: NSObjectProtocol?
+    private var levelPollTask: Task<Void, Never>?
+    private(set) var isRecording = false
+
+    /// Tracks the loudest sample seen in this recording session so the
+    /// visualization range auto-calibrates to any mic gain / distance.
+    private var peakDB: Float = -45
+
+    private let recordingURL: URL = {
+        FileManager.default.temporaryDirectory.appendingPathComponent("verbo-recording.wav")
+    }()
 
     // MARK: - Public Properties
 
-    static let levelCount = 20
-    var audioLevels: [Float] = Array(repeating: 0, count: AudioRecorder.levelCount)
+    /// Sliding window of audio amplitude samples, updated every ~100 ms
+    /// while recording. Consumed by the floating pill's visualizer.
+    private(set) var audioLevels: [Float] = Array(repeating: 0, count: AudioRecorder.levelCount)
 
-    // MARK: - Init / Deinit
+    // MARK: - Start
 
-    init() {
-        // Subscribe to the AVAudioEngineConfigurationChange notification.
-        // It fires when CoreAudio renegotiates with the underlying device,
-        // most importantly when AirPods switches its Bluetooth profile from
-        // A2DP (output-only, 48 kHz fake input) to HFP (24 kHz real mic) in
-        // response to engine.start(). When that happens the engine is auto-
-        // stopped by AVFoundation; if we don't reinstall the tap and restart
-        // we get zero buffers forever.
-        configChangeObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            Task { await self?.handleConfigurationChange() }
-        }
-    }
-
-    deinit {
-        if let obs = configChangeObserver {
-            NotificationCenter.default.removeObserver(obs)
-        }
-    }
-
-    // MARK: - Start Recording
-
-    /// Installs a tap on the input node, converts audio to 16 kHz mono Int16,
-    /// and yields chunks via an AsyncStream when enough bytes accumulate.
+    /// Begin a new recording session. Returns a stream that yields 40 ms
+    /// 16 kHz Int16 mono PCM chunks on stop — the stream does NOT yield
+    /// during recording (the file accumulates locally instead). On stop
+    /// the entire recording is read back from disk, converted, and
+    /// yielded rapidly, then the stream finishes.
     func start() -> AsyncStream<Data> {
         let t0 = DispatchTime.now().uptimeNanoseconds
         DebugLog.write("[audio] start() enter")
 
-        // Diagnostics: mic auth + default input device.
         let authStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         DebugLog.write("[audio] mic TCC=\(Self.authName(authStatus))")
         Self.logDefaultInputDevice()
 
-        // AirPods warmup: if the input node currently reports a suspicious
-        // sample rate (AirPods in A2DP mode exposes a 48 kHz fake-input
-        // shim, but the real HFP mic uses 24 kHz or 16 kHz), run a short
-        // AVAudioRecorder preroll to force CoreAudio to negotiate the SCO
-        // link. This gives us a stable 24 kHz HFP stream by the time our
-        // AVAudioEngine starts, avoiding the mid-session
-        // AVAudioEngineConfigurationChange that produces corrupted audio.
-        let probeEngine = AVAudioEngine()
-        let probeFormat = probeEngine.inputNode.outputFormat(forBus: 0)
-        if probeFormat.sampleRate >= 44100, probeFormat.channelCount == 1 {
-            DebugLog.write("[audio] suspected A2DP fake-input (sr=\(probeFormat.sampleRate)) — running warmup")
-            Self.warmupMicViaRecorder()
-        }
+        // If the system default input is a virtual / loopback capture
+        // driver, override it to a real mic BEFORE starting the recorder.
+        // AVAudioRecorder always records from the current system default,
+        // so this is the only hook we have to avoid iFlyrec et al.
+        Self.overrideDefaultInputIfVirtual()
 
-        // Reset per-cycle state.
-        audioBuffer = Data()
-        tapCallbackCount = 0
-        chunksYielded = 0
-        converterBox = ConverterBox()
+        audioLevels = Array(repeating: 0, count: Self.levelCount)
+        peakDB = -45
 
-        // Build a stream and stash its continuation. Subsequent reconfigures
-        // (config-change notifications) reuse this same continuation so the
-        // upstream consumer doesn't see a gap.
         let stream = AsyncStream<Data> { continuation in
             self.streamContinuation = continuation
         }
 
-        // Build the engine and start it. configureAndStart is also used by
-        // the configuration-change recovery path.
+        // Wipe any leftover file from a previous session so stop() never
+        // reads stale audio on a failed start.
+        try? FileManager.default.removeItem(at: recordingURL)
+
+        // Vocorize's proven settings: 16 kHz mono Float32 little-endian.
+        // AVAudioRecorder handles resampling + downmixing from whatever
+        // format the hardware actually delivers (including AirPods' 24 kHz
+        // HFP or 48 kHz A2DP), so we don't have to.
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatLinearPCM),
+            AVSampleRateKey: 16000.0,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 32,
+            AVLinearPCMIsFloatKey: true,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
+        ]
+
         do {
-            try configureAndStart(t0: t0)
+            let newRecorder = try AVAudioRecorder(url: recordingURL, settings: settings)
+            newRecorder.isMeteringEnabled = true
+            guard newRecorder.prepareToRecord() else {
+                DebugLog.write("[audio] prepareToRecord() returned false")
+                streamContinuation?.finish()
+                streamContinuation = nil
+                return stream
+            }
+            guard newRecorder.record() else {
+                DebugLog.write("[audio] record() returned false")
+                streamContinuation?.finish()
+                streamContinuation = nil
+                return stream
+            }
+            recorder = newRecorder
             isRecording = true
+            startLevelPolling()
+            DebugLog.write("[audio] recording started t+\(Self.ms(t0))ms → \(recordingURL.lastPathComponent)")
         } catch {
-            DebugLog.write("[audio] engine.start() THREW \(error.localizedDescription)")
+            DebugLog.write("[audio] AVAudioRecorder init failed: \(error.localizedDescription)")
             streamContinuation?.finish()
             streamContinuation = nil
         }
@@ -124,215 +121,173 @@ actor AudioRecorder {
         return stream
     }
 
-    /// Build a fresh AVAudioEngine, attach an AVAudioSinkNode to the input
-    /// node, and start the engine. Used by `start()` and by
-    /// `handleConfigurationChange()`. Throws if `engine.start()` fails.
-    ///
-    /// Why AVAudioSinkNode and not installTap+mainMixerNode: on macOS, the
-    /// mainMixerNode pump approach works for built-in mics but silently
-    /// drops buffers for AirPods, because `AVAudioMixerNode` on macOS
-    /// doesn't auto-convert input formats the way iOS does — feeding it a
-    /// 24 kHz mono HFP stream while the output is 44.1 kHz stereo causes
-    /// the mixer to discard everything. AVAudioSinkNode is Apple's
-    /// purpose-built "input-only capture" node (macOS 10.15+) with no
-    /// mixer constraints, and reliably pulls audio through the graph.
-    private func configureAndStart(t0: UInt64) throws {
-        // Tear down whatever the previous engine had — the safest way to
-        // make sure the input node has no residual tap and no orphaned
-        // connections is to release the engine entirely.
-        if engine.isRunning { engine.stop() }
-        engine = AVAudioEngine()
+    // MARK: - Stop
 
-        // If the system default input device looks like a virtual / loopback
-        // capture driver (iFlyrec, BlackHole, Soundflower, etc.), it's not a
-        // real microphone — it captures system output and delivers silence
-        // or wrong data to us. Pick a real physical mic instead and force
-        // the engine to use it.
-        Self.overrideInputDeviceIfVirtual(engine: engine)
-
-        let inputNode = engine.inputNode
-        let inputFormat = inputNode.outputFormat(forBus: 0)
-        DebugLog.write("[audio] inputFormat sr=\(inputFormat.sampleRate) ch=\(inputFormat.channelCount) t+\(Self.ms(t0))ms")
-        lastConfiguredSampleRate = inputFormat.sampleRate
-        lastConfiguredChannels = inputFormat.channelCount
-
-        let targetFormat = Self.targetFormat
-        let box = converterBox
-
-        // Sink node receives raw AudioBufferList from the render thread.
-        // We wrap the incoming interleaved data into a fresh
-        // AVAudioPCMBuffer so ConverterBox can run the same conversion
-        // path used for the installTap-based code.
-        let sinkNode = AVAudioSinkNode { [weak self, targetFormat] _, frameCount, audioBufferList in
-            guard let self else { return noErr }
-            guard frameCount > 0 else { return noErr }
-
-            // Build an AVAudioPCMBuffer that wraps the incoming buffer list.
-            // The buffer's format is the input node's format, so use the
-            // cached reference from the closure.
-            guard let pcmBuffer = AVAudioPCMBuffer(
-                pcmFormat: inputFormat,
-                bufferListNoCopy: audioBufferList
-            ) else {
-                return noErr
-            }
-            pcmBuffer.frameLength = AVAudioFrameCount(frameCount)
-
-            Task { await self.incrementTapCount() }
-
-            guard let data = ConverterBox.convert(
-                buffer: pcmBuffer,
-                targetFormat: targetFormat,
-                box: box
-            ) else { return noErr }
-
-            Task { [data] in
-                await self.pushAudio(data)
-            }
-            return noErr
-        }
-
-        engine.attach(sinkNode)
-        engine.connect(inputNode, to: sinkNode, format: inputFormat)
-        engine.prepare()
-
-        DebugLog.write("[audio] engine.start() begin t+\(Self.ms(t0))ms")
-        try engine.start()
-        DebugLog.write("[audio] engine.start() done  t+\(Self.ms(t0))ms running=\(engine.isRunning)")
-    }
-
-    /// Tracks the input node format last seen inside `configureAndStart`.
-    /// Used to debounce spurious AVAudioEngineConfigurationChange
-    /// notifications: our own `engine.attach`/`connect` calls inside start
-    /// can trigger the notification on the freshly-built engine, and
-    /// blindly reconfiguring in response causes a restart loop that
-    /// destabilizes CoreAudio (engine.start() has been observed to hang
-    /// for 4+ seconds in this state).
-    private var lastConfiguredSampleRate: Double = 0
-    private var lastConfiguredChannels: AVAudioChannelCount = 0
-
-    /// Called when AVAudioEngineConfigurationChange fires. AVFoundation has
-    /// already stopped the engine when this fires — we MUST restart it or
-    /// audio stops flowing (tap block never fires again). Two paths:
-    /// 1. Format unchanged → just restart the existing engine (cheap).
-    /// 2. Format changed → recreate the engine, reattach sink, restart.
-    ///
-    /// The upstream stream continuation stays alive across both so the
-    /// consumer doesn't see a gap.
-    private func handleConfigurationChange() {
-        guard isRecording else { return }
-
-        let currentFormat = engine.inputNode.outputFormat(forBus: 0)
-        let formatUnchanged = currentFormat.sampleRate == lastConfiguredSampleRate
-            && currentFormat.channelCount == lastConfiguredChannels
-
-        if formatUnchanged {
-            // Same format, just restart the current engine. Skipping the
-            // restart here was the cause of recordings silently getting
-            // zero tap callbacks: AVFoundation stops the engine on this
-            // notification regardless of whether the format actually
-            // changed, and leaving it stopped means no audio.
-            if engine.isRunning {
-                DebugLog.write("[audio] configChange — format unchanged, engine still running, skipping")
-                return
-            }
-            DebugLog.write("[audio] configChange — format unchanged, restarting engine in-place")
-            do {
-                try engine.start()
-            } catch {
-                DebugLog.write("[audio] restart failed: \(error.localizedDescription) — falling back to full reconfigure")
-                fullReconfigure()
-            }
-            return
-        }
-
-        DebugLog.write("[audio] AVAudioEngineConfigurationChange — format changed (\(lastConfiguredSampleRate)→\(currentFormat.sampleRate)), reconfiguring")
-        fullReconfigure()
-    }
-
-    private func fullReconfigure() {
-        let t0 = DispatchTime.now().uptimeNanoseconds
-        converterBox = ConverterBox()
-        do {
-            try configureAndStart(t0: t0)
-        } catch {
-            DebugLog.write("[audio] reconfigure failed: \(error.localizedDescription)")
-            isRecording = false
+    /// Stop the recording, read the WAV file, convert Float32 → Int16,
+    /// yield all chunks on the stream, then finish it. Returns any
+    /// sub-chunk remainder (never used by our caller but preserved for
+    /// AudioRecording protocol compatibility).
+    func stop() -> Data {
+        guard let rec = recorder else {
+            DebugLog.write("[audio] stop() — no active recorder, noop")
             streamContinuation?.finish()
             streamContinuation = nil
+            return Data()
         }
-    }
 
-    // MARK: - Stop Recording
-
-    /// Removes the tap, stops the engine, flushes any remaining buffered audio, and finishes the stream.
-    func stop() -> Data {
-        if engine.isRunning {
-            engine.stop()
-        }
+        let t0 = DispatchTime.now().uptimeNanoseconds
+        rec.stop()
+        recorder = nil
         isRecording = false
+        levelPollTask?.cancel()
+        levelPollTask = nil
 
-        let remaining = audioBuffer
-        audioBuffer = Data()
+        let pcm = Self.readWavAsInt16Mono16k(url: recordingURL)
+        DebugLog.write("[audio] stop() wav bytes=\(pcm.count) (\(pcm.count / Self.chunkSize) chunks)")
+
+        var yielded = 0
+        var offset = 0
+        while offset + Self.chunkSize <= pcm.count {
+            let chunk = pcm.subdata(in: offset..<(offset + Self.chunkSize))
+            streamContinuation?.yield(chunk)
+            yielded += 1
+            offset += Self.chunkSize
+        }
+
         streamContinuation?.finish()
         streamContinuation = nil
 
-        DebugLog.write("[audio] stop() tapCallbacks=\(tapCallbackCount) chunksYielded=\(chunksYielded) bufferedBytesLeft=\(remaining.count)")
+        DebugLog.write("[audio] stop() yielded=\(yielded) chunks t+\(Self.ms(t0))ms")
 
-        return remaining
+        // Clean up the temp file — we've already streamed its contents.
+        try? FileManager.default.removeItem(at: recordingURL)
+
+        return Data()
     }
 
-    private func incrementTapCount() {
-        tapCallbackCount += 1
-    }
+    // MARK: - Level polling
 
-    // MARK: - Actor-isolated audio fan-in
-
-    /// Audio thread → actor handoff. Only Sendable Data crosses the boundary.
-    private func pushAudio(_ data: Data) {
-        processAudioData(data)
-        updateAudioLevels(from: data)
-    }
-
-    private func processAudioData(_ data: Data) {
-        audioBuffer.append(data)
-        while audioBuffer.count >= Self.chunkSize {
-            let chunk = audioBuffer.prefix(Self.chunkSize)
-            streamContinuation?.yield(Data(chunk))
-            chunksYielded += 1
-            audioBuffer = audioBuffer.dropFirst(Self.chunkSize)
+    private func startLevelPolling() {
+        levelPollTask?.cancel()
+        levelPollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.pollOneLevel()
+                try? await Task.sleep(for: .milliseconds(16))
+            }
         }
     }
 
-    private func updateAudioLevels(from data: Data) {
-        let sampleCount = data.count / MemoryLayout<Int16>.size
-        guard sampleCount > 0 else { return }
+    private func pollOneLevel() {
+        guard let rec = recorder, rec.isRecording else { return }
+        rec.updateMeters()
+        let powerDB = rec.averagePower(forChannel: 0)
 
-        let samples = data.withUnsafeBytes { buffer -> [Int16] in
-            Array(buffer.bindMemory(to: Int16.self))
+        // Track the loudest sample in this session so the range auto-
+        // calibrates. Fixed floor at -45 dBFS — from real recordings
+        // this sits right between "pause between words" (-44 to -52 dB)
+        // and "quiet consonant" (-35 to -40 dB), giving clean zero
+        // during gaps. The range = [floor, peak] expands automatically
+        // as the user speaks louder.
+        if powerDB > peakDB { peakDB = powerDB }
+
+        let floor: Float = -45
+        let range = max(peakDB - floor, 10)  // at least 10 dB range
+        let level: Float
+        if powerDB < floor {
+            level = 0
+        } else {
+            level = min(1, max(0, (powerDB - floor) / range))
         }
 
-        let segmentSize = max(1, sampleCount / Self.levelCount)
-        var levels = [Float](repeating: 0, count: Self.levelCount)
-
-        for i in 0..<Self.levelCount {
-            let start = i * segmentSize
-            let end = min(start + segmentSize, sampleCount)
-            guard start < end else { continue }
-
-            let segment = samples[start..<end]
-            let avgAmplitude = segment.map { Float(Int32($0).magnitude) }.reduce(0, +) / Float(segment.count)
-            levels[i] = avgAmplitude / Float(Int16.max)
-        }
-
-        audioLevels = levels
+        // Sliding window: each bar is one historical sample.
+        var next = audioLevels
+        next.removeFirst()
+        next.append(level)
+        audioLevels = next
     }
 
-    // MARK: - Helpers
+    // MARK: - WAV reading (Float32 → Int16)
+
+    /// Read the recorded WAV as 16 kHz mono Int16 little-endian PCM.
+    /// Uses AVAudioFile instead of hand-parsing WAV headers because
+    /// AVAudioFile correctly handles all RIFF chunk layouts.
+    private static func readWavAsInt16Mono16k(url: URL) -> Data {
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            DebugLog.write("[audio] WAV missing at \(url.path)")
+            return Data()
+        }
+        do {
+            let file = try AVAudioFile(forReading: url)
+            let frameCount = AVAudioFrameCount(file.length)
+            guard frameCount > 0 else {
+                DebugLog.write("[audio] WAV has zero frames")
+                return Data()
+            }
+            // AVAudioFile's processingFormat is always Float32 deinterleaved.
+            let format = file.processingFormat
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+                DebugLog.write("[audio] AVAudioPCMBuffer alloc failed")
+                return Data()
+            }
+            try file.read(into: buffer)
+            guard let channelData = buffer.floatChannelData else {
+                DebugLog.write("[audio] WAV has no float channel data")
+                return Data()
+            }
+
+            let count = Int(buffer.frameLength)
+            let channel0 = channelData[0]
+
+            // Convert Float32 [-1, 1] → Int16 [-32768, 32767].
+            var int16 = [Int16](repeating: 0, count: count)
+            for i in 0..<count {
+                let f = channel0[i]
+                let clamped = max(-1.0, min(1.0, f))
+                int16[i] = Int16(clamped * 32767.0)
+            }
+            return int16.withUnsafeBufferPointer { Data(buffer: $0) }
+        } catch {
+            DebugLog.write("[audio] WAV read error: \(error.localizedDescription)")
+            return Data()
+        }
+    }
+
+    // MARK: - Diagnostics
 
     private static func ms(_ startNs: UInt64) -> Int {
         Int((DispatchTime.now().uptimeNanoseconds &- startNs) / 1_000_000)
     }
+
+    private static func authName(_ status: AVAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "notDetermined"
+        case .restricted:    return "restricted"
+        case .denied:        return "denied"
+        case .authorized:    return "authorized"
+        @unknown default:    return "unknown"
+        }
+    }
+
+    private static func logDefaultInputDevice() {
+        guard let deviceID = defaultInputDeviceID() else {
+            DebugLog.write("[audio] defaultInputDevice query failed")
+            return
+        }
+        let name = deviceName(id: deviceID) ?? "?"
+
+        var streamsAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var streamsSize: UInt32 = 0
+        _ = AudioObjectGetPropertyDataSize(deviceID, &streamsAddr, 0, nil, &streamsSize)
+        let streamCount = Int(streamsSize) / MemoryLayout<AudioStreamID>.size
+
+        DebugLog.write("[audio] defaultInput name=\(name) inputStreams=\(streamCount)")
+    }
+
+    // MARK: - Virtual input device override
 
     /// Blocklist of device-name substrings that identify virtual /
     /// loopback audio capture drivers. These expose themselves as input
@@ -343,42 +298,39 @@ actor AudioRecorder {
         "screen capture", "aggregate",
     ]
 
-    /// If the current default input device looks like a virtual/loopback
-    /// capture driver, find the best real mic on the system and set it as
-    /// the engine's input device via AUAudioUnit. Falls back silently if
-    /// no alternative is available.
-    private static func overrideInputDeviceIfVirtual(engine: AVAudioEngine) {
-        guard let defaultID = defaultInputDeviceID() else { return }
-        let defaultName = deviceName(id: defaultID) ?? ""
-        let defaultIsVirtual = isVirtualDevice(id: defaultID, name: defaultName)
+    /// If the system default input device is a virtual/loopback driver,
+    /// pick the best real mic on the system and set it as the system
+    /// default via CoreAudio HAL. This does change the user's system
+    /// setting, but only when the current default is clearly wrong for
+    /// dictation (same approach OpenSuperWhisper and Vocorize take).
+    private static func overrideDefaultInputIfVirtual() {
+        guard let currentID = defaultInputDeviceID() else { return }
+        let currentName = deviceName(id: currentID) ?? ""
+        guard isVirtualDevice(id: currentID, name: currentName) else { return }
 
-        if !defaultIsVirtual {
-            return  // system default looks fine, let AVAudioEngine use it
-        }
-
-        DebugLog.write("[audio] default input '\(defaultName)' looks virtual — picking real mic")
-        guard let replacementID = pickBestRealInputDevice(excluding: defaultID) else {
-            DebugLog.write("[audio] no real mic candidate found; staying with '\(defaultName)'")
+        DebugLog.write("[audio] default input '\(currentName)' looks virtual — picking real mic")
+        guard let replacementID = pickBestRealInputDevice(excluding: currentID) else {
+            DebugLog.write("[audio] no real mic candidate; staying with '\(currentName)'")
             return
         }
         let replacementName = deviceName(id: replacementID) ?? "?"
-        DebugLog.write("[audio] overriding input device → '\(replacementName)' (id=\(replacementID))")
 
-        guard let audioUnit = engine.inputNode.audioUnit else {
-            DebugLog.write("[audio] inputNode.audioUnit is nil, cannot override device")
-            return
-        }
         var idValue = replacementID
-        let err = AudioUnitSetProperty(
-            audioUnit,
-            kAudioOutputUnitProperty_CurrentDevice,
-            kAudioUnitScope_Global,
-            0,
-            &idValue,
-            UInt32(MemoryLayout<AudioDeviceID>.size)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
         )
-        if err != noErr {
-            DebugLog.write("[audio] AudioUnitSetProperty CurrentDevice failed status=\(err)")
+        let status = AudioObjectSetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &addr, 0, nil,
+            UInt32(MemoryLayout<AudioDeviceID>.size),
+            &idValue
+        )
+        if status == noErr {
+            DebugLog.write("[audio] system default input → '\(replacementName)'")
+        } else {
+            DebugLog.write("[audio] failed to set default input status=\(status)")
         }
     }
 
@@ -397,9 +349,6 @@ actor AudioRecorder {
         return status == noErr ? deviceID : nil
     }
 
-    /// Enumerate all audio devices with at least one input stream, score
-    /// them by "realness" (built-in > USB/Bluetooth > unknown > virtual),
-    /// return the highest-scoring one excluding a given id.
     private static func pickBestRealInputDevice(excluding excluded: AudioDeviceID) -> AudioDeviceID? {
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
@@ -424,7 +373,7 @@ actor AudioRecorder {
             guard hasInputStreams(id: id) else { continue }
             let name = deviceName(id: id) ?? ""
             let score = scoreDevice(id: id, name: name)
-            DebugLog.write("[audio] candidate name='\(name)' id=\(id) score=\(score)")
+            DebugLog.write("[audio] candidate '\(name)' id=\(id) score=\(score)")
             if score < 0 { continue }
             if best == nil || score > best!.1 {
                 best = (id, score)
@@ -434,9 +383,7 @@ actor AudioRecorder {
     }
 
     private static func scoreDevice(id: AudioDeviceID, name: String) -> Int {
-        if isVirtualDevice(id: id, name: name) {
-            return -1  // never pick this
-        }
+        if isVirtualDevice(id: id, name: name) { return -1 }
         let transport = deviceTransportType(id: id)
         switch transport {
         case kAudioDeviceTransportTypeBuiltIn:    return 100
@@ -484,94 +431,8 @@ actor AudioRecorder {
     }
 
     private static func deviceName(id: AudioDeviceID) -> String? {
-        getDeviceString(id: id, selector: kAudioObjectPropertyName)
-    }
-
-    /// Preroll an AVAudioRecorder for ~300 ms. AVAudioRecorder uses a
-    /// different internal path than AVAudioEngine and reliably forces
-    /// Bluetooth headsets into their mic-capable HFP profile. After the
-    /// recorder stops, the device stays in HFP for several seconds —
-    /// plenty of time for our AVAudioEngine to attach with a stable
-    /// 24 kHz stream. The recording is discarded.
-    private static func warmupMicViaRecorder() {
-        let t0 = DispatchTime.now().uptimeNanoseconds
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("verbo-warmup.m4a")
-        let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: 16000,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.low.rawValue,
-        ]
-        do {
-            let rec = try AVAudioRecorder(url: tempURL, settings: settings)
-            guard rec.prepareToRecord() else {
-                DebugLog.write("[audio] warmup prepare FAILED")
-                return
-            }
-            guard rec.record() else {
-                DebugLog.write("[audio] warmup record FAILED")
-                return
-            }
-            // Block the actor briefly. 300 ms is enough for AirPods SCO
-            // negotiation on modern macOS; any longer would delay the
-            // user-visible recording start.
-            Thread.sleep(forTimeInterval: 0.30)
-            rec.stop()
-            try? FileManager.default.removeItem(at: tempURL)
-            DebugLog.write("[audio] warmup done t+\(Self.ms(t0))ms")
-        } catch {
-            DebugLog.write("[audio] warmup failed: \(error.localizedDescription)")
-        }
-    }
-
-    private static func authName(_ status: AVAuthorizationStatus) -> String {
-        switch status {
-        case .notDetermined: return "notDetermined"
-        case .restricted:    return "restricted"
-        case .denied:        return "denied"
-        case .authorized:    return "authorized"
-        @unknown default:    return "unknown"
-        }
-    }
-
-    /// Queries CoreAudio for the system's default input device and writes its
-    /// ID / name / input-stream count to debug.log. Used to spot routing
-    /// problems (virtual loopback device, AirPods in A2DP-only mode, etc.).
-    private static func logDefaultInputDevice() {
-        var deviceID = AudioDeviceID(0)
-        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
         var addr = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultInputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        let status = AudioObjectGetPropertyData(
-            AudioObjectID(kAudioObjectSystemObject),
-            &addr, 0, nil, &size, &deviceID
-        )
-        guard status == noErr else {
-            DebugLog.write("[audio] defaultInputDevice query failed status=\(status)")
-            return
-        }
-
-        let name = getDeviceString(id: deviceID, selector: kAudioObjectPropertyName) ?? "?"
-
-        var streamsAddr = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyStreams,
-            mScope: kAudioDevicePropertyScopeInput,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        var streamsSize: UInt32 = 0
-        _ = AudioObjectGetPropertyDataSize(deviceID, &streamsAddr, 0, nil, &streamsSize)
-        let streamCount = Int(streamsSize) / MemoryLayout<AudioStreamID>.size
-
-        DebugLog.write("[audio] defaultInput name=\(name) inputStreams=\(streamCount)")
-    }
-
-    private static func getDeviceString(id: AudioDeviceID, selector: AudioObjectPropertySelector) -> String? {
-        var addr = AudioObjectPropertyAddress(
-            mSelector: selector,
+            mSelector: kAudioObjectPropertyName,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
@@ -586,63 +447,3 @@ actor AudioRecorder {
 }
 
 extension AudioRecorder: AudioRecording {}
-
-// MARK: - ConverterBox
-
-/// Holds a cached AVAudioConverter for the tap block. Lives in the closure
-/// captures (per recording cycle) so each start() — and each reconfigure — has
-/// its own. The audio thread is single-threaded from our POV so no locking is
-/// required. Marked @unchecked Sendable so it can be captured in the Sendable
-/// tap closure.
-final class ConverterBox: @unchecked Sendable {
-    private var key: String = ""
-    private var converter: AVAudioConverter?
-
-    /// Convert an input buffer to the target format (16 kHz Int16 mono).
-    /// Rebuilds the converter if the source format changes (AirPods HFP/A2DP
-    /// renegotiation, manual device switch).
-    static func convert(
-        buffer: AVAudioPCMBuffer,
-        targetFormat: AVAudioFormat,
-        box: ConverterBox
-    ) -> Data? {
-        let sourceFormat = buffer.format
-        guard sourceFormat.sampleRate > 0, buffer.frameLength > 0 else { return nil }
-
-        let key = "\(sourceFormat.sampleRate)_\(sourceFormat.channelCount)_\(sourceFormat.commonFormat.rawValue)"
-        if box.key != key {
-            guard let c = AVAudioConverter(from: sourceFormat, to: targetFormat) else {
-                DebugLog.write("[audio] converter build FAILED sr=\(sourceFormat.sampleRate) ch=\(sourceFormat.channelCount)")
-                return nil
-            }
-            box.converter = c
-            box.key = key
-            DebugLog.write("[audio] converter \(sourceFormat.sampleRate)Hz/\(sourceFormat.channelCount)ch → \(targetFormat.sampleRate)Hz")
-        }
-        guard let converter = box.converter else { return nil }
-
-        let frameCapacity = AVAudioFrameCount(
-            ceil(Double(buffer.frameLength) * targetFormat.sampleRate / sourceFormat.sampleRate)
-        )
-        guard frameCapacity > 0,
-              let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCapacity)
-        else {
-            return nil
-        }
-
-        var error: NSError?
-        let status = converter.convert(to: outputBuffer, error: &error) { _, outStatus in
-            outStatus.pointee = .haveData
-            return buffer
-        }
-        guard status != .error, error == nil else {
-            DebugLog.write("[audio] convert error \(error?.localizedDescription ?? "?")")
-            return nil
-        }
-
-        let byteCount = Int(outputBuffer.frameLength) * MemoryLayout<Int16>.size
-        guard byteCount > 0, let channelData = outputBuffer.int16ChannelData else { return nil }
-
-        return Data(bytes: channelData[0], count: byteCount)
-    }
-}

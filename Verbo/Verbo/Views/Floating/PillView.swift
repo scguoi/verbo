@@ -100,10 +100,11 @@ struct PillView: View {
                 .font(DesignTokens.Typography.pillText)
                 .foregroundStyle(Color.green)
 
-        case .error:
-            Text(String(localized: "pill.error"))
+        case .error(let message):
+            Text(message)
                 .font(DesignTokens.Typography.pillText)
                 .foregroundStyle(DesignTokens.Colors.errorCrimson)
+                .lineLimit(1)
         }
     }
 
