@@ -1,114 +1,77 @@
 # Verbo
 
-A native macOS voice input tool. Press a hotkey, speak, and the transcribed (and optionally post-processed) text is typed into whichever app you were using.
+macOS 语音输入工具。按下快捷键说话，识别结果自动输入到当前应用。
 
-Verbo is built for people who dictate a lot and want full control over the pipeline: pick your own STT provider, chain an LLM on top to polish / translate / reformat, and bind the whole thing to any key — including bare modifiers like Right Option or the Fn / 🌐 key.
+支持纯听写、语音润色、中译英等多种场景，通过可视化 pipeline 自由组合 STT + LLM。
 
-## Features
+## 快速开始
 
-- **Menu-bar app with a floating pill**. No dock icon, no focus stealing. The pill sits in the corner and shows recording state.
-- **Configurable scenes.** Each scene is a named pipeline (STT → optional LLM → output). Switch between scenes via per-scene hotkeys. Shipped presets: dictate, polish, translate.
-- **Any key can be a hotkey**, including `Fn` / 🌐, bare `Right Option`, bare `Right Command`, or any modifier combo. Captured via a dedicated-thread `CGEventTap`, so the Fn key actually works on modern macOS.
-- **Streaming STT** via iFlytek WebSocket. Partial results appear as you speak.
-- **LLM post-processing** via any OpenAI-compatible endpoint (OpenAI, Azure, local models through OpenRouter / vLLM / Ollama, …). Configure provider / model / base URL / prompt per scene.
-- **Smart target routing.** Verbo tracks the frontmost non-self app when you start recording, so the text lands in the window you were actually using — even if focus shifted to a system notification or Verbo's own UI in between.
-- **End-to-end latency metric** per recording, with a rolling average shown in the status-bar menu.
-- **Input history** stored in `~/.verbo/history.json`.
-- **Dark mode**, full i18n (zh / en), push-to-talk or toggle modes.
+### 1. 安装
 
-## Requirements
+从 [Releases](https://github.com/scguoi/verbo/releases) 下载最新版 `Verbo-x.y.z.zip`，解压后拖到 `/Applications`。
 
-- macOS 14 Sonoma or later
-- Apple Silicon (the shipped release is arm64; Intel builds can be made from source)
-- Microphone permission (prompted on first record)
-- Accessibility permission — required for Fn / modifier-only hotkeys and for simulated typing. You'll be prompted on first launch.
+> 首次打开时 macOS 会提示未经验证的开发者。右键 Verbo.app → 打开 → 确认，或执行 `xattr -cr /Applications/Verbo.app`。
 
-## Install
+启动后会弹出两个权限请求，都需要允许：
+- **麦克风** — 录音用
+- **辅助功能** — 捕获 Fn 快捷键和模拟键盘输入用
 
-### From release (recommended)
+### 2. 配置讯飞语音识别
 
-1. Download `Verbo-x.y.z.zip` from the [Releases](https://github.com/scguoi/verbo/releases) page.
-2. Unzip and drag `Verbo.app` into `/Applications`.
-3. The release is signed with an Apple Development certificate but not notarized, so Gatekeeper will complain on first launch. Either:
-   - **Right-click** `Verbo.app` → **Open** → confirm in the dialog, or
-   - Run `xattr -cr /Applications/Verbo.app` once to clear the quarantine flag.
-4. Launch Verbo. When prompted, grant **Microphone** and **Accessibility** permissions in System Settings → Privacy & Security.
-5. Open **Settings** from the menu bar icon and fill in your iFlytek / LLM provider credentials.
+Verbo 使用[讯飞开放平台](https://www.xfyun.cn)的语音识别服务，需要注册并获取 API Key：
 
-### From source
+1. 打开 [讯飞开放平台](https://www.xfyun.cn)，注册并登录
+2. 进入 [控制台](https://console.xfyun.cn)，点击「创建新应用」，填写应用名称（随意）
+3. 进入 [语音识别 → 中文识别大模型](https://console.xfyun.cn/services/bmc)，点击「购买」，选择**个人免费包**（2 万次免费调用）
+4. 在应用详情页找到 **APPID**、**APIKey**、**APISecret** 三个值
+
+然后在 Verbo 中：
+- 点击菜单栏的 Verbo 图标 → **Settings** → **Providers** 标签
+- 在 **Iflytek** 卡片中填入上面获取的三个值 → 点击 **保存**
+
+### 3. 开始使用
+
+默认配置了三个场景，每个绑定了不同快捷键：
+
+| 场景 | 说明 | 默认快捷键 |
+|------|------|-----------|
+| 语音输入 | 说中文 → 直接输入文字 | `Fn` |
+| 润色输入 | 说中文 → LLM 润色后输入 | `Alt+J` |
+| 中译英 | 说中文 → LLM 翻译成英文输入 | `Alt+T` |
+
+**基本操作**：按一次快捷键开始录音（胶囊显示音波），再按一次停止 → 识别结果自动输入到当前焦点窗口。
+
+> 润色和中译英场景需要额外配置 LLM 服务商（Settings → Providers → OpenAI 卡片），填入 API Key 和 Base URL。支持任何 OpenAI 兼容的 API（OpenAI、Azure、ChatAnywhere、Ollama 等）。
+
+## 功能特性
+
+- **菜单栏常驻**，不占 Dock，不抢焦点
+- **实时预览**：说话过程中胶囊下方实时显示识别文字（可在设置中关闭）
+- **场景自定义**：可视化编辑 pipeline（添加/删除 STT+LLM 步骤），自定义 prompt 和快捷键
+- **灵活快捷键**：支持 `Fn`、`Right Command`、`Fn+Alt`、`Cmd+Shift+H` 等各种组合
+- **智能目标路由**：录音结束后文字准确输入到你开始录音时的那个窗口
+- **AirPods 支持**：自动处理蓝牙设备协商，兼容 AirPods / AirPods Pro
+- **虚拟设备过滤**：自动跳过 iFlyrec、BlackHole 等虚拟音频设备
+- **端到端延迟统计**：状态栏菜单显示近 50 次平均耗时
+- **暗色模式**，中英双语界面
+
+## 系统要求
+
+- macOS 14 Sonoma 或更高版本
+- Apple Silicon（release 为 arm64；Intel 可从源码构建）
+
+## 从源码构建
 
 ```bash
 brew install xcodegen
 git clone https://github.com/scguoi/verbo.git
 cd verbo/Verbo
-make build        # xcodegen generate + xcodebuild Debug
-make deploy       # build → copy to /Applications → launch
-make test         # run the full test suite (161 tests)
+make build     # xcodegen generate + xcodebuild
+make deploy    # 构建 → 复制到 /Applications → 启动
+make test      # 运行测试
 ```
 
-All commands are also documented in [`CLAUDE.md`](CLAUDE.md).
-
-## Configuration
-
-All user state lives under `~/.verbo/`:
-
-| File | Purpose |
-|------|---------|
-| `config.json` | scenes, provider credentials, general settings |
-| `history.json` | per-recording history with latency + pipeline info |
-| `debug.log` | timestamped trace log (DEBUG builds and the `DebugLog` hot-path markers) |
-
-You can edit scenes / hotkeys / providers from the Settings window; the pill auto-refreshes when config changes.
-
-### Scenes
-
-A scene is an ordered list of pipeline steps. Each step is either an STT or LLM call. The STT result becomes the input for the next LLM step via the `{{input}}` placeholder in the prompt.
-
-Example:
-
-```
-dictate:   [ STT(iflytek, zh) ] → simulate typing
-polish:    [ STT(iflytek, zh) ] → [ LLM(gpt-4o-mini, "Polish: {{input}}") ] → simulate typing
-translate: [ STT(iflytek, zh) ] → [ LLM(gpt-4o-mini, "Translate to English: {{input}}") ] → simulate typing
-```
-
-### Hotkeys
-
-Every scene can bind a toggle-record hotkey. Accepted forms:
-
-- Named single keys: `Fn`, `RightCommand`, `RightOption`, etc.
-- Modifier combos: `Cmd+Shift+H`, `Alt+D`, `Ctrl+Space`
-- Bare modifiers (single tap): `RightOption`, `Fn`
-
-The hotkey implementation runs on a dedicated thread with a session-level `CGEventTap` in default (non-listen-only) mode so it can capture and optionally block the Fn key before the system uses it for dictation / emoji picker / input-source switching.
-
-## Architecture
-
-High-level layers:
-
-```
-AppKit layer    — AppDelegate, FloatingPanel (NSPanel), tray, window management
-SwiftUI layer   — Views/, ViewModels/ (@MainActor @Observable)
-Core layer      — PipelineEngine (actor), AudioRecorder (actor),
-                  HotkeyManager, ConfigManager, HistoryManager,
-                  TextOutputService
-Adapters        — Sendable STT / LLM protocols + concrete providers
-```
-
-State machine:
-
-```
-idle → recording → transcribing(partial) → processing(source, partial) → done → idle
-```
-
-See [`CLAUDE.md`](CLAUDE.md) for layer conventions and concurrency rules, and [`docs/DESIGN.md`](docs/DESIGN.md) for the visual design system.
-
-## Development notes
-
-- The project is generated from `Verbo/project.yml` via XcodeGen. Don't edit `Verbo.xcodeproj` directly — run `xcodegen generate` after adding or removing source files.
-- Swift 6 strict concurrency is enabled. Types crossing actor boundaries must be Sendable.
-- Tests live in `Verbo/VerboTests/`. `TextOutputServiceTests` is skipped in headless runs because CGEvent needs a display.
-- `DebugLog.write` appends timestamped (`HH:mm:ss.SSS`) lines to `~/.verbo/debug.log` from any thread and is used for latency tracing.
+详见 [`CLAUDE.md`](CLAUDE.md)。
 
 ## License
 
